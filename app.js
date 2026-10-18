@@ -100,6 +100,7 @@ document.addEventListener('input',e=>{
  const label=document.querySelector('.side-card h3 .mini');if(label)label.textContent=`${done}/${d.questionIds.length}`;
 });
 document.addEventListener('click',e=>{
+ if(e.target.closest('.skip')){e.preventDefault();main.focus();main.scrollIntoView({block:'start'});return;}
  const b=e.target.closest('[data-action]');if(!b||b.disabled)return;const action=b.dataset.action;
  if(['home','stats','review'].includes(action)){go(action);return;}
  const d=state.draft;
