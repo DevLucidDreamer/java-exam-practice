@@ -23,6 +23,10 @@ function latestWrong(attempts,lookup){
 }
 function elapsed(d,now=Date.now()){return Math.max(0,Math.floor((d.accumulatedMs+(d.runningSince?Math.max(0,now-d.runningSince):0))/1000));}
 function isAnswered(q,a){return q.type==='mc'?Number.isInteger(a?.choice):!!a?.answer?.trim()&&!!a?.reason?.trim();}
+function validateStudy(value){
+ const validKey=v=>typeof v==='string'&&/^ch[1-5]-[a-z0-9-]{1,60}$/.test(v);
+ return {completed:Array.isArray(value?.completed)?[...new Set(value.completed.filter(validKey))].slice(0,200):[],lastChapter:Number.isInteger(value?.lastChapter)&&value.lastChapter>=1&&value.lastChapter<=5?value.lastChapter:1,lastSection:validKey(value?.lastSection)?value.lastSection:null};
+}
 function validateState(data,lookup){
  if(!data||data.version!==1||!Array.isArray(data.attempts)||data.attempts.length>2000)throw Error('지원하지 않는 기록 파일입니다.');
  const cleanAnswers=(answers,ids)=>{
@@ -36,17 +40,19 @@ function validateState(data,lookup){
  };
  const validIds=ids=>Array.isArray(ids)&&ids.length>0&&ids.length<=80&&new Set(ids).size===ids.length&&ids.every(id=>Object.hasOwn(lookup,id));
  const attempts=data.attempts.map(a=>{
-  if(!a||typeof a.id!=='string'||!validIds(a.questionIds)||!Number.isFinite(a.finishedAt)||!Number.isFinite(a.duration)||a.duration<0||!['exam','review'].includes(a.mode))throw Error('풀이 기록이 올바르지 않습니다.');
+  if(!a||typeof a.id!=='string'||!validIds(a.questionIds)||!Number.isFinite(a.finishedAt)||!Number.isFinite(a.duration)||a.duration<0||!['exam','review','chapter'].includes(a.mode))throw Error('풀이 기록이 올바르지 않습니다.');
   return {id:a.id,examId:String(a.examId??''),title:String(a.title??'풀이 기록').slice(0,100),mode:a.mode,questionIds:a.questionIds,answers:cleanAnswers(a.answers,a.questionIds),finishedAt:a.finishedAt,duration:a.duration};
  });
  if(new Set(attempts.map(a=>a.id)).size!==attempts.length)throw Error('중복된 풀이 기록입니다.');
  let draft=null;
  if(data.draft){const d=data.draft;
-  if(!validIds(d.questionIds)||!Number.isInteger(d.index)||d.index<0||d.index>=d.questionIds.length||!Number.isFinite(d.accumulatedMs)||d.accumulatedMs<0||!(d.runningSince===null||Number.isFinite(d.runningSince))||!['exam','review'].includes(d.mode))throw Error('진행 중 답안이 올바르지 않습니다.');
+  if(!validIds(d.questionIds)||!Number.isInteger(d.index)||d.index<0||d.index>=d.questionIds.length||!Number.isFinite(d.accumulatedMs)||d.accumulatedMs<0||!(d.runningSince===null||Number.isFinite(d.runningSince))||!['exam','review','chapter'].includes(d.mode))throw Error('진행 중 답안이 올바르지 않습니다.');
   draft={examId:String(d.examId??''),title:String(d.title??'진행 중 시험').slice(0,100),mode:d.mode,questionIds:d.questionIds,answers:cleanAnswers(d.answers,d.questionIds),index:d.index,flagged:Array.isArray(d.flagged)?d.flagged.filter(id=>d.questionIds.includes(id)):[],accumulatedMs:d.accumulatedMs,runningSince:d.runningSince,startedAt:Number.isFinite(d.startedAt)?d.startedAt:Date.now()};
  }
- return {version:1,attempts:attempts.slice(-200),draft};
+ const result={version:1,attempts:attempts.slice(-200),draft};
+ if(data.study!==undefined)result.study=validateStudy(data.study);
+ return result;
 }
-root.ExamCore={normalize,round,grade,summarize,latestWrong,elapsed,isAnswered,validateState};
+root.ExamCore={normalize,round,grade,summarize,latestWrong,elapsed,isAnswered,validateState,validateStudy};
 if(typeof module!=='undefined')module.exports=root.ExamCore;
 })(typeof window!=='undefined'?window:globalThis);
