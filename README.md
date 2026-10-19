@@ -16,6 +16,12 @@
 
 ## 실행과 검증
 
+운영 주소: https://java-exam-practice.pages.dev/ (Cloudflare Pages Direct Upload)
+
+Cloudflare 로그인 후 PowerShell에서 `./deploy-cloudflare.ps1`을 실행하면 배포에 필요한 10개 파일만 dist에 모아 같은 프로젝트에 배포합니다. `-BuildOnly`는 업로드 없이 배포 파일만 준비합니다. GitHub 빌드를 거치지 않습니다. 인증 토큰은 저장소에 넣지 않습니다.
+
+주소가 달라지면 localStorage도 분리됩니다. 기존 GitHub Pages의 기록은 해당 사이트에서 JSON으로 내보낸 뒤 새 주소의 학습 기록 화면에서 가져옵니다.
+
 정적 서버로 폴더를 제공합니다. GitHub Pages main 브랜치의 루트에 배포합니다. 강의 PDF나 후기 이미지는 저장소에 올리지 않습니다. final-mock-exam.pdf는 직접 작성한 창작 문제지입니다.
 
 node --test tests/core.test.js tests/study.test.js tests/revision.test.js
