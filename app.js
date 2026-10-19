@@ -6,6 +6,7 @@ const activeIds=new Set(exams.flatMap(e=>e.questions.map(q=>q.id)));
 const activeAttempts=()=>state.attempts.filter(a=>a.questionIds.every(id=>activeIds.has(id)));
 const currentWrong=()=>C.latestWrong(activeAttempts(),lookup);
 const KEY='java-study-room.v1',main=document.querySelector('#main'),modal=document.querySelector('#modal');
+const legacyBackup=()=>{try{return localStorage.getItem(KEY+'.before-20261020');}catch{return null;}};
 const blank=()=>({version:1,attempts:[],draft:null,study:{completed:[],lastChapter:1,lastSection:null}});
 let state=blank(),route='home',resultId=null,resultFilter='all',storageOK=true,toastTimer;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -83,7 +84,7 @@ function statsView(){
  <h2>장별 누적 정답률</h2><section class="chapter-grid">${[1,2,3,4,5].map(ch=>{const rows=activeAttempts().flatMap(a=>summary(a).rows).filter(r=>lookup[r.id].chapter===ch),correct=rows.filter(r=>r.score===5).length,pct=rows.length?Math.round(correct/rows.length*100):null;return `<article class="chapter-card"><h3>${ch}장</h3><strong>${pct===null?'—':pct+'%'}</strong><div class="mini">${chapterNames[ch]}<br>${correct} / ${rows.length}회 정답</div><div class="progress"><i style="width:${pct||0}%"></i></div></article>`;}).join('')}</section>
  <div class="section-head"><h2>응시 기록</h2><div class="toolbar">${button('내보내기','export')}${button('가져오기','import')}</div></div>
  ${state.attempts.length?`<div class="table-wrap"><table class="history-table"><thead><tr><th>날짜</th><th>시험</th><th>점수</th><th>정답</th><th>시간</th><th>상세</th></tr></thead><tbody>${[...state.attempts].reverse().map(a=>{const s=summary(a);return `<tr><td>${date(a.finishedAt)}</td><td>${esc(a.title)}${a.questionIds.every(id=>activeIds.has(id))?'':' <span class="tag">이전판</span>'}${a.mode==='review'?' <span class="tag">복습</span>':a.mode==='chapter'?' <span class="tag">챕터</span>':''}</td><td><b>${s.percent}점</b>${s.pending?' <span class="mini">잠정</span>':''}</td><td>${s.correct}/${a.questionIds.length}</td><td>${fmt(a.duration)}</td><td>${button('해설','result','',`data-id="${esc(a.id)}"`)}</td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty"><div class="symbol">{ }</div><h3>첫 번째 기록을 만들어 보세요.</h3><p>시험을 제출하면 점수와 소요 시간이 여기에 쌓입니다.</p>${button('모의고사 선택','home','primary')}</div>`}
- <p class="privacy">이 브라우저에 최근 200개 풀이를 보관합니다. 기록 파일에는 답안과 서술형 점수가 포함됩니다. 가져오기는 현재 기록을 대체하므로 먼저 내보내기로 백업해 주세요. 다른 기기로 옮길 때도 같은 기능을 사용할 수 있습니다. 개념 학습 진도도 함께 보관합니다.</p><div class="toolbar">${localStorage.getItem(KEY+'.before-20261020')?button('이전판 원본 백업 내보내기','export-legacy'):''}${button('모든 학습 기록 삭제','reset','danger text')}</div>`;
+ <p class="privacy">이 브라우저에 최근 200개 풀이를 보관합니다. 기록 파일에는 답안과 서술형 점수가 포함됩니다. 가져오기는 현재 기록을 대체하므로 먼저 내보내기로 백업해 주세요. 다른 기기로 옮길 때도 같은 기능을 사용할 수 있습니다. 개념 학습 진도도 함께 보관합니다.</p><div class="toolbar">${legacyBackup()?button('이전판 원본 백업 내보내기','export-legacy'):''}${button('모든 학습 기록 삭제','reset','danger text')}</div>`;
 }
 function reviewView(){
  const ids=currentWrong();
@@ -132,11 +133,11 @@ document.addEventListener('click',e=>{
  case 'retry-result':{const a=state.attempts.find(a=>a.id===resultId),ids=summary(a).rows.filter(r=>r.score<5&&activeIds.has(r.id)).map(r=>r.id);if(ids.length)start(a.examId,ids,'review');break;}
  case 'review-start':{const ids=currentWrong();if(ids.length)start('wrong',ids,'review');break;}
  case 'export':exportData();break;
- case 'export-legacy':{const raw=localStorage.getItem(KEY+'.before-20261020');if(raw){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='java-study-before-20261020.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}break;}
+ case 'export-legacy':{const raw=legacyBackup();if(raw){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='java-study-before-20261020.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}break;}
  case 'import':document.querySelector('#import-file').click();break;
  case 'apply-import':if(window.pendingImport){state=window.pendingImport;readFailed=false;save();close();go('stats');toast('기록을 가져왔습니다.');}break;
  case 'reset':dialog('학습 기록을 삭제할까요?','<p>이 사이트의 응시 기록과 진행 중 답안, 개념 학습 진도가 삭제됩니다. 다른 사이트의 데이터에는 영향을 주지 않습니다. 필요하면 먼저 기록을 내보내세요.</p>',button('취소','close')+button('모든 기록 삭제','reset-confirm','danger'));break;
- case 'reset-confirm':localStorage.removeItem(KEY+'.before-20261020');state=blank();readFailed=false;save();close();go('home');toast('학습 기록을 삭제했습니다.');break;
+ case 'reset-confirm':try{localStorage.removeItem(KEY+'.before-20261020');}catch{}state=blank();readFailed=false;save();close();go('home');toast('학습 기록을 삭제했습니다.');break;
  case 'info':dialog('문제와 기록에 대해','<p>강의자료 1~4장과 5장 p.1~29, 제공된 시험 후기를 참고해 2026.10.20에 새로 작성한 80문제입니다. 실제 기출의 재현이나 출제 보장은 아닙니다. Java 10 강의 문법을 기준으로 합니다.</p><p>객관식은 4지선다, 서술형은 결과·이유를 적는 방식입니다. 문항당 5점이며, 서술형 자동 점수는 핵심어 기반 잠정 채점입니다. 모범답안을 보고 직접 확정할 수 있습니다.</p><p>답안·오답·점수·소요 시간은 이 브라우저의 로컬 저장소에만 보관하며 서버로 전송하지 않습니다. 다른 기기·브라우저·사이트 주소와 기록이 공유되지 않습니다. 사이트 데이터 삭제 시 기록도 지워집니다.</p><p>시간 제한은 없으며 명시적으로 일시정지하지 않으면 탭을 닫은 시간도 포함됩니다. 최근 200개 풀이를 보관하고 JSON 내보내기·가져오기를 지원합니다.</p>',button('확인','close','primary'));break;
  }
 });
