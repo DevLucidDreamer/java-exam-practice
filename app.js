@@ -1,7 +1,10 @@
 /* No network calls, analytics or remote storage. All answer data stays in this browser. */
 (function(){
 'use strict';
-const C=window.ExamCore,exams=window.JAVA_EXAMS,lookup=Object.fromEntries(exams.flatMap(e=>e.questions.map(q=>[q.id,q])));
+const C=window.ExamCore,exams=window.JAVA_EXAMS,lookup=Object.fromEntries([...(window.JAVA_LEGACY_EXAMS||[]),...exams].flatMap(e=>e.questions.map(q=>[q.id,q])));
+const activeIds=new Set(exams.flatMap(e=>e.questions.map(q=>q.id)));
+const activeAttempts=()=>state.attempts.filter(a=>a.questionIds.every(id=>activeIds.has(id)));
+const currentWrong=()=>C.latestWrong(activeAttempts(),lookup);
 const KEY='java-study-room.v1',main=document.querySelector('#main'),modal=document.querySelector('#modal');
 const blank=()=>({version:1,attempts:[],draft:null,study:{completed:[],lastChapter:1,lastSection:null}});
 let state=blank(),route='home',resultId=null,resultFilter='all',storageOK=true,toastTimer;
@@ -9,31 +12,35 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 const date=t=>new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
 const button=(label,action,cls='',extra='')=>`<button class="btn ${cls}" data-action="${action}" ${extra}>${label}</button>`;
-const chapterNames=['','자바 실행 원리','자료형·연산·조건','반복·배열·예외','클래스와 객체','상속·다형성'];
+const chapterNames=['','자바 실행 원리','자료형·연산·조건','반복·배열·예외','클래스와 객체','상속·캐스팅'];
 function warn(message){storageOK=false;const el=document.querySelector('#save-warning');el.hidden=false;el.textContent=message;}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;document.querySelector('#save-warning').hidden=true;return true;}catch{warn('브라우저 저장 공간을 사용할 수 없어 이번 변경이 저장되지 않았습니다. 기록 내보내기로 보관해 주세요.');return false;}}
 try{const raw=localStorage.getItem(KEY);if(raw)state=C.validateState(JSON.parse(raw),lookup);}catch{warn('저장된 기록을 읽지 못했습니다. 기존 데이터를 덮어쓰지 않도록 임시 모드로 열었습니다. 기록 내보내기 후 다시 확인해 주세요.');}
+// Keep the previous edition's full raw backup before pausing its obsolete draft.
+if(storageOK&&state.draft&&!state.draft.questionIds.every(id=>activeIds.has(id))){
+ try {const archiveKey=KEY+'.before-20261020';if(!localStorage.getItem(archiveKey))localStorage.setItem(archiveKey,localStorage.getItem(KEY));state.draft=null;localStorage.setItem(KEY,JSON.stringify(state));} catch {warn('이전판 진행 중 기록을 보관하지 못했습니다. 기록 내보내기로 먼저 백업해 주세요.');}
+}
 let readFailed=!storageOK;
 const save=()=>readFailed?false:persist();
 function toast(msg){const t=document.querySelector('#toast');t.textContent=msg;t.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('visible'),3500);}
 function dialog(title,body,actions){document.querySelector('#modal-body').innerHTML=`<h2 id="modal-title">${title}</h2>${body}<div class="toolbar">${actions}</div>`;if(!modal.open)modal.showModal();}
 function close(){modal.close();}
-function header(){document.querySelector('#wrong-count').textContent=C.latestWrong(state.attempts,lookup).length;document.querySelectorAll('.topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.action===route));}
+function header(){document.querySelector('#wrong-count').textContent=currentWrong().length;document.querySelectorAll('.topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.action===route));}
 function go(target,focus=true){if(target!=='learn'&&location.hash.startsWith('#learn'))history.pushState(null,'',location.pathname+location.search);route=target;render();if(focus){main.focus();window.scrollTo({top:0,behavior:'instant'});}}
 function stat(label,value,suffix=''){return `<div class="stat"><span class="stat-label">${label}</span><strong>${value}</strong><small>${suffix}</small></div>`;}
 function summary(a){return C.summarize(a.questionIds,a.answers,lookup);}
-const studyView=window.createStudyView({chapters:window.JAVA_LESSONS,questions:Object.values(lookup),getState:()=>state,save,esc,button});
+const studyView=window.createStudyView({chapters:window.JAVA_LESSONS,questions:exams.flatMap(e=>e.questions),getState:()=>state,save,esc,button});
 function showStudy(){route='learn';render();studyView.afterRender();}
 function home(){
- const full=state.attempts.filter(a=>a.mode==='exam'),wrong=C.latestWrong(state.attempts,lookup),avg=full.length?C.round(full.reduce((n,a)=>n+summary(a).percent,0)/full.length):'—';
+ const full=activeAttempts().filter(a=>a.mode==='exam'),wrong=currentWrong(),avg=full.length?C.round(full.reduce((n,a)=>n+summary(a).percent,0)/full.length):'—';
  const pending=full.some(a=>summary(a).pending);
- main.innerHTML=`<section class="hero"><div><div class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</div><h1>개념을 이해하고,<br>시험에 익숙해지는 시간.</h1><p class="sub">손코딩 없이, 기본 개념부터 코드 해석까지.<br>1~5장을 네 번에 나눠 점검하는 자바 중간고사 연습실입니다.</p><div class="hero-meta"><span class="pill">총 80문제</span><span class="pill">4지선다 + 서술형</span><span class="pill outline">이 기기에 기록 저장</span></div></div><div class="hero-art" aria-hidden="true"><span class="brace">{ J }</span><span class="art-label">THINK · SOLVE · UNDERSTAND</span></div></section>
+ main.innerHTML=`<section class="hero"><div><div class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</div><h1>개념을 이해하고,<br>시험에 익숙해지는 시간.</h1><p class="sub">손코딩 없이, 기본 개념부터 코드 해석까지.<br>1~4장과 5장 29쪽까지, 새 문제 네 회차로 점검합니다.</p><div class="hero-meta"><span class="pill">신규 80문제 · 2026.10.20</span><span class="pill">4지선다 + 서술형</span><span class="pill outline">이 기기에 기록 저장</span></div></div><div class="hero-art" aria-hidden="true"><span class="brace">{ J }</span><span class="art-label">THINK · SOLVE · UNDERSTAND</span></div></section>
  ${state.draft?`<div class="notice resume"><div><strong>풀던 시험이 기다리고 있어요.</strong>${esc(state.draft.title)} · ${state.draft.questionIds.filter(id=>C.isAnswered(lookup[id],state.draft.answers[id])).length}/${state.draft.questionIds.length}문제 응답 · <span data-time>${fmt(C.elapsed(state.draft))}</span></div>${button('이어서 풀기 →','resume','primary')}</div>`:''}
- <section class="stats-strip" aria-label="학습 요약">${stat('풀어 본 회차',new Set(full.map(a=>a.examId)).size,'/ 4회')}${stat(pending?'평균 잠정 점수':'평균 점수',avg,full.length?'점':'')}${stat('다시 볼 오답',wrong.length,'문제')}${stat('누적 풀이 시간',Math.round(state.attempts.reduce((n,a)=>n+a.duration,0)/60),'분')}</section>
- <section class="study-entry"><div><span class="eyebrow">CONCEPT NOTES · 1~5장</span><h2>문제 전에, 개념부터 살펴볼까요?</h2><p class="sub">챕터별 설명·비교표·예제와 스스로 확인 질문을 준비했어요.</p></div>${button('개념 공부 시작 →','learn','primary')}</section>
+ <aside class="notice scope-notice"><strong>시험 범위: 1~4장 전체 + 5장 p.1~29 (instanceof 예제까지)</strong><p>5장 p.30부터의 오버라이딩·동적 바인딩·추상 클래스·인터페이스는 제외했습니다. 시험 후기의 WORA·예외·생성자·접근 지정자·업캐스팅을 우선 연습합니다.</p><p>신규판 점수·오답은 이전판과 분리합니다. 이전 응시 기록은 학습 기록에 남아 있으며, 이전판 진행 중 답안은 이 브라우저에 원본 백업됩니다.</p><a class="btn" href="./final-mock-exam.pdf" target="_blank" rel="noopener">최종점검 PDF · 별도 신규 17문항 ↓</a><span class="mini"> 객관식 15 + 출력·판단 서술형 2</span></aside><section class="stats-strip" aria-label="학습 요약">${stat('풀어 본 회차',new Set(full.map(a=>a.examId)).size,'/ 4회')}${stat(pending?'평균 잠정 점수':'평균 점수',avg,full.length?'점':'')}${stat('다시 볼 오답',wrong.length,'문제')}${stat('누적 풀이 시간',Math.round(state.attempts.reduce((n,a)=>n+a.duration,0)/60),'분')}</section>
+ <section class="study-entry"><div><span class="eyebrow">CONCEPT NOTES · 1~4장 + 5장 p.29까지</span><h2>문제 전에, 개념부터 살펴볼까요?</h2><p class="sub">챕터별 설명·비교표·예제와 스스로 확인 질문을 준비했어요.</p></div>${button('개념 공부 시작 →','learn','primary')}</section>
  <section><div class="section-head"><h2>네 번의 연습, 한 번의 자신감</h2><p class="sub">각 20문제 · 객관식 18 + 서술형 2 · 100점 만점</p></div><div class="exam-grid">${exams.map((e,i)=>{
   const attempts=full.filter(a=>a.examId===e.id),last=attempts.at(-1),s=last&&summary(last);
-  return `<article class="exam-card"><div class="card-top"><span class="book-number">PRACTICE BOOK / 0${i+1}</span><span class="pill ${last?'':'outline'}">${last?`${attempts.length}회 풀이`:'새로운 연습'}</span></div><h3>${esc(e.title)}</h3><p class="sub">${esc(e.subtitle)}</p><div class="card-tags"><span class="tag">1~5장 고르게</span><span class="tag">개념 중심</span><span class="tag">시간 제한 없음</span></div><div class="card-bottom"><span class="card-result">${last?`최근 ${s.percent}점${s.pending?' · 서술형 미확정':''}`:'아직 풀지 않았어요'}</span>${button(last?'다시 도전 →':'시험 시작 →','start','primary',`data-exam="${e.id}"`)}</div></article>`;
+  return `<article class="exam-card"><div class="card-top"><span class="book-number">PRACTICE BOOK / 0${i+1}</span><span class="pill ${last?'':'outline'}">${last?`${attempts.length}회 풀이`:'새로운 연습'}</span></div><h3>${esc(e.title)}</h3><p class="sub">${esc(e.subtitle)}</p><div class="card-tags"><span class="tag">시험 범위 5개 장</span><span class="tag">개념 중심</span><span class="tag">시간 제한 없음</span></div><div class="card-bottom"><span class="card-result">${last?`최근 ${s.percent}점${s.pending?' · 서술형 미확정':''}`:'아직 풀지 않았어요'}</span>${button(last?'다시 도전 →':'시험 시작 →','start','primary',`data-exam="${e.id}"`)}</div></article>`;
  }).join('')}</div></section><div class="notice">시험 후기를 참고한 창작 연습문제입니다. 문항당 5점, 서술형은 결과 2점 + 이유 3점입니다. 서술형 핵심어 채점은 잠정 결과이며, 제출 후 모범답안과 비교해 직접 점수를 확정할 수 있어요.</div><p class="privacy">기록은 이 브라우저에만 보관됩니다. 다른 기기와 동기화되지 않으며, 사이트 데이터 삭제·시크릿 모드 종료 시 사라질 수 있습니다. ‘학습 기록’에서 JSON 파일로 내보내기·가져오기가 가능합니다.</p>`;
 }
 function start(examId,ids,mode='exam'){
@@ -54,7 +61,7 @@ function submitPrompt(){const d=state.draft;if(!d)return;const count=d.questionI
 function finish(){const d=state.draft;if(!d)return;const a={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,examId:d.examId,title:d.title,mode:d.mode,questionIds:[...d.questionIds],answers:structuredClone(d.answers),duration:C.elapsed(d),finishedAt:Date.now()};state.attempts.push(a);state.attempts=state.attempts.slice(-200);state.draft=null;save();resultId=a.id;resultFilter='all';close();go('result');}
 function resultView(){
  const a=state.attempts.find(a=>a.id===resultId);if(!a){go('stats',false);return;}
- const s=summary(a),wrong=s.rows.filter(r=>r.score<5).length;
+ const s=summary(a),wrong=s.rows.filter(r=>r.score<5&&activeIds.has(r.id)).length;
  main.innerHTML=`<div class="eyebrow">ONE STEP CLOSER</div><section class="result-top"><div class="score-ring"><b>${s.percent}</b><small>${s.pending?'서술형 포함 잠정 점수':'최종 점수'} / 100</small></div><div><span class="pill">${a.mode==='review'?'오답 복습 완료':a.mode==='chapter'?'챕터 확인 완료':'모의고사 완료'}</span><h1>${esc(a.title)}</h1><p class="sub">${s.pending?`서술형 ${s.pending}문제는 아직 확정 전입니다. 아래 모범답안과 비교해 점수를 확정해 주세요.`:s.percent>=90?'개념이 단단해지고 있어요. 이유까지 말할 수 있는지 한 번 더 확인해 보세요.':'틀린 이유를 한 번 더 읽고, 오답만 골라 다시 도전해 보세요.'}</p><div class="result-meta"><span>정답 <b>${s.correct}/${a.questionIds.length}</b></span><span>획득 <b>${s.points}/${s.max}점</b></span><span>소요 <b>${fmt(a.duration)}</b></span><span>${date(a.finishedAt)}</span></div></div></section>
  <div class="toolbar">${button(`이번 오답 ${wrong}문제 다시 풀기`,'retry-result','primary',wrong?'':'disabled')}${button('학습 기록 보기','stats')}${button('기록 내보내기','export','text')}</div>
  ${s.pending?'<div class="notice">서술형 자동 채점은 결과 일치와 핵심어 포함 여부만 검사합니다. 문맥·부정 표현·동의어를 완벽하게 판단하지 못하므로, 이유를 읽고 0~5점으로 수정·확정해 주세요. 부분 점수도 점수에 반영되며 5점 미만은 오답 복습 대상으로 남습니다.</div>':''}
@@ -70,16 +77,16 @@ function reviewItem(attempt,q,g){
  ${q.type==='written'?`<div class="manual-score"><div>핵심어 1차 채점: 결과 ${g.outputOK?'2':'0'}/2점 · 이유 ${C.round(g.autoScore-(g.outputOK?2:0))}/3점</div><div class="mini">이유 기준: ${q.groups.map(group=>esc(group[0])).join(' + ')} (각 ${3/q.groups.length}점)</div><label for="manual-${q.id}">내가 확인한 점수 <input id="manual-${q.id}" type="number" min="0" max="5" step="0.5" value="${g.score}" aria-label="${idx}번 서술형 확정 점수"></label> ${button(g.confirmed?'점수 수정':'점수 확정','confirm-grade','',`data-question="${q.id}"`)} ${g.confirmed?'<span class="mini">확정 완료</span>':''}</div>`:''}<p class="source">복습 위치: ${esc(q.source)}</p>${button('이 장 개념 복습 →','related-concepts','text',`data-chapter="${q.chapter}"`)}</div></details>`;
 }
 function statsView(){
- const full=state.attempts.filter(a=>a.mode==='exam'),scores=full.map(a=>summary(a));
- main.innerHTML=`<div class="page-title"><div class="eyebrow">YOUR LEARNING JOURNAL</div><h1>조금씩 쌓이는 학습 기록</h1><p class="sub">정답률은 5점 만점인 문제의 비율입니다. 평균 점수에는 부분 점수가 반영됩니다.<br>서술형 미확정 결과는 잠정 수치이며, 오답·챕터 문제 풀이도 장별 누적 통계에 포함합니다.</p></div>
- <section class="stats-strip">${stat('전체 시험 응시',full.length,'회')}${stat('최고 점수',scores.length?Math.max(...scores.map(s=>s.percent)):'—','점')}${stat('평균 점수',scores.length?C.round(scores.reduce((n,s)=>n+s.percent,0)/scores.length):'—','점')}${stat('서술형 미확정',state.attempts.reduce((n,a)=>n+summary(a).pending,0),'문제')}</section>
- <h2>장별 누적 정답률</h2><section class="chapter-grid">${[1,2,3,4,5].map(ch=>{const rows=state.attempts.flatMap(a=>summary(a).rows).filter(r=>lookup[r.id].chapter===ch),correct=rows.filter(r=>r.score===5).length,pct=rows.length?Math.round(correct/rows.length*100):null;return `<article class="chapter-card"><h3>${ch}장</h3><strong>${pct===null?'—':pct+'%'}</strong><div class="mini">${chapterNames[ch]}<br>${correct} / ${rows.length}회 정답</div><div class="progress"><i style="width:${pct||0}%"></i></div></article>`;}).join('')}</section>
+ const full=activeAttempts().filter(a=>a.mode==='exam'),scores=full.map(a=>summary(a));
+ main.innerHTML=`<div class="page-title"><div class="eyebrow">YOUR LEARNING JOURNAL</div><h1>조금씩 쌓이는 학습 기록</h1><p class="sub">정답률은 5점 만점인 문제의 비율입니다. 평균 점수에는 부분 점수가 반영됩니다.<br>서술형 미확정 결과는 잠정 수치이며, 신규판의 오답·챕터 문제 풀이도 장별 누적 통계에 포함합니다. 이전판 기록은 아래에 보존되며 신규판 평균·오답에는 포함하지 않습니다.</p></div>
+ <section class="stats-strip">${stat('전체 시험 응시',full.length,'회')}${stat('최고 점수',scores.length?Math.max(...scores.map(s=>s.percent)):'—','점')}${stat('평균 점수',scores.length?C.round(scores.reduce((n,s)=>n+s.percent,0)/scores.length):'—','점')}${stat('서술형 미확정',activeAttempts().reduce((n,a)=>n+summary(a).pending,0),'문제')}</section>
+ <h2>장별 누적 정답률</h2><section class="chapter-grid">${[1,2,3,4,5].map(ch=>{const rows=activeAttempts().flatMap(a=>summary(a).rows).filter(r=>lookup[r.id].chapter===ch),correct=rows.filter(r=>r.score===5).length,pct=rows.length?Math.round(correct/rows.length*100):null;return `<article class="chapter-card"><h3>${ch}장</h3><strong>${pct===null?'—':pct+'%'}</strong><div class="mini">${chapterNames[ch]}<br>${correct} / ${rows.length}회 정답</div><div class="progress"><i style="width:${pct||0}%"></i></div></article>`;}).join('')}</section>
  <div class="section-head"><h2>응시 기록</h2><div class="toolbar">${button('내보내기','export')}${button('가져오기','import')}</div></div>
- ${state.attempts.length?`<div class="table-wrap"><table class="history-table"><thead><tr><th>날짜</th><th>시험</th><th>점수</th><th>정답</th><th>시간</th><th>상세</th></tr></thead><tbody>${[...state.attempts].reverse().map(a=>{const s=summary(a);return `<tr><td>${date(a.finishedAt)}</td><td>${esc(a.title)}${a.mode==='review'?' <span class="tag">복습</span>':a.mode==='chapter'?' <span class="tag">챕터</span>':''}</td><td><b>${s.percent}점</b>${s.pending?' <span class="mini">잠정</span>':''}</td><td>${s.correct}/${a.questionIds.length}</td><td>${fmt(a.duration)}</td><td>${button('해설','result','',`data-id="${esc(a.id)}"`)}</td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty"><div class="symbol">{ }</div><h3>첫 번째 기록을 만들어 보세요.</h3><p>시험을 제출하면 점수와 소요 시간이 여기에 쌓입니다.</p>${button('모의고사 선택','home','primary')}</div>`}
- <p class="privacy">이 브라우저에 최근 200개 풀이를 보관합니다. 기록 파일에는 답안과 서술형 점수가 포함됩니다. 가져오기는 현재 기록을 대체하므로 먼저 내보내기로 백업해 주세요. 다른 기기로 옮길 때도 같은 기능을 사용할 수 있습니다. 개념 학습 진도도 함께 보관합니다.</p><div class="toolbar">${button('모든 학습 기록 삭제','reset','danger text')}</div>`;
+ ${state.attempts.length?`<div class="table-wrap"><table class="history-table"><thead><tr><th>날짜</th><th>시험</th><th>점수</th><th>정답</th><th>시간</th><th>상세</th></tr></thead><tbody>${[...state.attempts].reverse().map(a=>{const s=summary(a);return `<tr><td>${date(a.finishedAt)}</td><td>${esc(a.title)}${a.questionIds.every(id=>activeIds.has(id))?'':' <span class="tag">이전판</span>'}${a.mode==='review'?' <span class="tag">복습</span>':a.mode==='chapter'?' <span class="tag">챕터</span>':''}</td><td><b>${s.percent}점</b>${s.pending?' <span class="mini">잠정</span>':''}</td><td>${s.correct}/${a.questionIds.length}</td><td>${fmt(a.duration)}</td><td>${button('해설','result','',`data-id="${esc(a.id)}"`)}</td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty"><div class="symbol">{ }</div><h3>첫 번째 기록을 만들어 보세요.</h3><p>시험을 제출하면 점수와 소요 시간이 여기에 쌓입니다.</p>${button('모의고사 선택','home','primary')}</div>`}
+ <p class="privacy">이 브라우저에 최근 200개 풀이를 보관합니다. 기록 파일에는 답안과 서술형 점수가 포함됩니다. 가져오기는 현재 기록을 대체하므로 먼저 내보내기로 백업해 주세요. 다른 기기로 옮길 때도 같은 기능을 사용할 수 있습니다. 개념 학습 진도도 함께 보관합니다.</p><div class="toolbar">${localStorage.getItem(KEY+'.before-20261020')?button('이전판 원본 백업 내보내기','export-legacy'):''}${button('모든 학습 기록 삭제','reset','danger text')}</div>`;
 }
 function reviewView(){
- const ids=C.latestWrong(state.attempts,lookup);
+ const ids=currentWrong();
  main.innerHTML=`<div class="page-title"><div class="eyebrow">TURN MISTAKES INTO UNDERSTANDING</div><h1>틀린 문제는, 한 번 더.</h1><p class="sub">문제별 가장 최근 풀이에서 5점 미만인 문제를 모았습니다.<br>복습에서 만점을 받으면 목록에서 빠집니다. 아직 풀지 않은 문제는 포함하지 않습니다.</p></div>${ids.length?`<div class="notice resume"><div><strong>지금 다시 볼 문제 ${ids.length}개</strong>부분 정답과 빈 답안도 포함합니다. 서술형 잠정 채점에 따라 목록이 바뀔 수 있어요.</div>${button('오답만 다시 풀기 →','review-start','primary')}</div><div class="review-list">${ids.map(id=>{const q=lookup[id],e=exams.find(e=>e.questions.some(q=>q.id===id));return `<article class="wrong-card"><span class="tag">${q.chapter}장 · ${esc(q.topic)}</span><h3>${esc(q.prompt)}</h3><p>${esc(e.title)} · ${q.number}번 · ${q.type==='mc'?'객관식':'서술형'}</p></article>`;}).join('')}</div>`:`<div class="empty"><div class="symbol">✓</div><h3>${state.attempts.length?'남아 있는 오답이 없어요.':'아직 모인 오답이 없어요.'}</h3><p>모의고사를 풀고 제출하면 틀린 문제를 여기서 복습할 수 있습니다.</p>${button('모의고사 선택','home','primary')}</div>`}`;
 }
 function render(){if(route!=='learn')document.title='JAVA STUDY ROOM · 자바 중간고사 연습';header();({home,learn:()=>studyView.render(),exam:examView,result:resultView,stats:statsView,review:reviewView}[route]||home)();}
@@ -107,7 +114,7 @@ document.addEventListener('click',e=>{
  switch(action){
  case 'learn':if(!studyView.open()){studyView.readHash();showStudy();}break;
  case 'complete-section':studyView.toggle(b.dataset.section);break;
- case 'chapter-practice':{const chapter=Number(b.dataset.chapter),ids=Object.values(lookup).filter(q=>q.chapter===chapter).map(q=>q.id);if(ids.length)start(`chapter${chapter}`,ids,'chapter');break;}
+ case 'chapter-practice':{const chapter=Number(b.dataset.chapter),ids=Object.values(lookup).filter(q=>activeIds.has(q.id)&&q.chapter===chapter).map(q=>q.id);if(ids.length)start(`chapter${chapter}`,ids,'chapter');break;}
  case 'related-concepts':if(!studyView.open(Number(b.dataset.chapter))){studyView.readHash();showStudy();}break;
  case 'close':close();break;
  case 'start':{const ex=exams.find(e=>e.id===b.dataset.exam);start(ex.id,ex.questions.map(q=>q.id));break;}
@@ -122,17 +129,18 @@ document.addEventListener('click',e=>{
  case 'result':resultId=b.dataset.id;resultFilter='all';go('result');break;
  case 'result-filter':resultFilter=b.dataset.filter;render();break;
  case 'confirm-grade':{const a=state.attempts.find(a=>a.id===resultId),id=b.dataset.question,input=document.getElementById(`manual-${id}`);if(!a||input.value==='')return toast('0~5점 사이 점수를 입력해 주세요.');const score=Number(input.value);if(!Number.isFinite(score)||score<0||score>5||score*2%1!==0)return toast('0~5점 사이에서 0.5점 단위로 입력해 주세요.');a.answers[id]={...a.answers[id],manualScore:score};save();render();toast('서술형 점수를 확정했습니다.');break;}
- case 'retry-result':{const a=state.attempts.find(a=>a.id===resultId),ids=summary(a).rows.filter(r=>r.score<5).map(r=>r.id);if(ids.length)start(a.examId,ids,'review');break;}
- case 'review-start':{const ids=C.latestWrong(state.attempts,lookup);if(ids.length)start('wrong',ids,'review');break;}
+ case 'retry-result':{const a=state.attempts.find(a=>a.id===resultId),ids=summary(a).rows.filter(r=>r.score<5&&activeIds.has(r.id)).map(r=>r.id);if(ids.length)start(a.examId,ids,'review');break;}
+ case 'review-start':{const ids=currentWrong();if(ids.length)start('wrong',ids,'review');break;}
  case 'export':exportData();break;
+ case 'export-legacy':{const raw=localStorage.getItem(KEY+'.before-20261020');if(raw){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='java-study-before-20261020.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}break;}
  case 'import':document.querySelector('#import-file').click();break;
  case 'apply-import':if(window.pendingImport){state=window.pendingImport;readFailed=false;save();close();go('stats');toast('기록을 가져왔습니다.');}break;
  case 'reset':dialog('학습 기록을 삭제할까요?','<p>이 사이트의 응시 기록과 진행 중 답안, 개념 학습 진도가 삭제됩니다. 다른 사이트의 데이터에는 영향을 주지 않습니다. 필요하면 먼저 기록을 내보내세요.</p>',button('취소','close')+button('모든 기록 삭제','reset-confirm','danger'));break;
- case 'reset-confirm':state=blank();readFailed=false;save();close();go('home');toast('학습 기록을 삭제했습니다.');break;
- case 'info':dialog('문제와 기록에 대해','<p>강의자료 1~5장과 제공된 시험 후기를 참고해 새로 작성한 80문제입니다. 실제 기출의 재현이나 출제 보장은 아닙니다. Java 10 강의 문법을 기준으로 합니다.</p><p>객관식은 4지선다, 서술형은 결과·이유를 적는 방식입니다. 문항당 5점이며, 서술형 자동 점수는 핵심어 기반 잠정 채점입니다. 모범답안을 보고 직접 확정할 수 있습니다.</p><p>답안·오답·점수·소요 시간은 이 브라우저의 로컬 저장소에만 보관하며 서버로 전송하지 않습니다. 다른 기기·브라우저·사이트 주소와 기록이 공유되지 않습니다. 사이트 데이터 삭제 시 기록도 지워집니다.</p><p>시간 제한은 없으며 명시적으로 일시정지하지 않으면 탭을 닫은 시간도 포함됩니다. 최근 200개 풀이를 보관하고 JSON 내보내기·가져오기를 지원합니다.</p>',button('확인','close','primary'));break;
+ case 'reset-confirm':localStorage.removeItem(KEY+'.before-20261020');state=blank();readFailed=false;save();close();go('home');toast('학습 기록을 삭제했습니다.');break;
+ case 'info':dialog('문제와 기록에 대해','<p>강의자료 1~4장과 5장 p.1~29, 제공된 시험 후기를 참고해 2026.10.20에 새로 작성한 80문제입니다. 실제 기출의 재현이나 출제 보장은 아닙니다. Java 10 강의 문법을 기준으로 합니다.</p><p>객관식은 4지선다, 서술형은 결과·이유를 적는 방식입니다. 문항당 5점이며, 서술형 자동 점수는 핵심어 기반 잠정 채점입니다. 모범답안을 보고 직접 확정할 수 있습니다.</p><p>답안·오답·점수·소요 시간은 이 브라우저의 로컬 저장소에만 보관하며 서버로 전송하지 않습니다. 다른 기기·브라우저·사이트 주소와 기록이 공유되지 않습니다. 사이트 데이터 삭제 시 기록도 지워집니다.</p><p>시간 제한은 없으며 명시적으로 일시정지하지 않으면 탭을 닫은 시간도 포함됩니다. 최근 200개 풀이를 보관하고 JSON 내보내기·가져오기를 지원합니다.</p>',button('확인','close','primary'));break;
  }
 });
-document.querySelector('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(file.size>5*1024*1024)return toast('5MB 이하의 기록 파일만 가져올 수 있습니다.');try{window.pendingImport=C.validateState(JSON.parse(await file.text()),lookup);dialog('기록을 가져올까요?',`<p>가져올 풀이 기록은 ${window.pendingImport.attempts.length}개입니다. 현재 기록과 진행 중 답안, 개념 학습 진도가 가져온 내용으로 대체됩니다. 이전 버전의 백업 파일에는 개념 진도가 없습니다. 먼저 현재 기록을 내보내 백업하는 것을 권장합니다.</p>`,button('취소','close')+button('현재 기록 내보내기','export')+button('대체하여 가져오기','apply-import','primary'));}catch(err){toast(`가져오기 실패: ${err.message}`);}});
+document.querySelector('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(file.size>5*1024*1024)return toast('5MB 이하의 기록 파일만 가져올 수 있습니다.');try{window.pendingImport=C.validateState(JSON.parse(await file.text()),lookup);if(window.pendingImport.draft&&!window.pendingImport.draft.questionIds.every(id=>activeIds.has(id)))window.pendingImport.draft=null;dialog('기록을 가져올까요?',`<p>가져올 풀이 기록은 ${window.pendingImport.attempts.length}개입니다. 현재 기록과 진행 중 답안, 개념 학습 진도가 가져온 내용으로 대체됩니다. 이전판 문제의 진행 중 답안은 재개하지 않습니다. 이전 버전의 백업 파일에는 개념 진도가 없을 수 있습니다. 먼저 현재 기록을 내보내 백업하는 것을 권장합니다.</p>`,button('취소','close')+button('현재 기록 내보내기','export')+button('대체하여 가져오기','apply-import','primary'));}catch(err){toast(`가져오기 실패: ${err.message}`);}});
 window.addEventListener('storage',e=>{if(e.key===KEY){warn('다른 탭에서 학습 기록이 변경되었습니다. 이 탭의 변경을 저장하려면 먼저 기록을 내보낸 뒤 새로고침해 주세요.');readFailed=true;}});
 setInterval(()=>{if(state.draft)document.querySelectorAll('[data-time]').forEach(el=>el.textContent=fmt(C.elapsed(state.draft)));},1000);
 window.addEventListener('hashchange',()=>{if(studyView.readHash())showStudy();else go('home');});

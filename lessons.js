@@ -1,50 +1,1286 @@
-/* Original explanations based on the course's chapters 1–5. No lecture files are distributed. */
-(function(root){
-'use strict';
-const chapters=[
-{id:1,title:'자바 실행 원리',intro:'소스 코드가 실행되는 과정을 알면 WORA와 개발 환경의 차이가 자연스럽게 연결됩니다.',minutes:12,keywords:['WORA','JVM','바이트 코드','JDK·JRE'],goals:['자바가 플랫폼 독립적인 이유를 설명한다.','컴파일과 실행 명령, 소스와 클래스 파일을 구분한다.','API·패키지·모듈과 주요 언어 특성을 연결한다.'],sections:[
-{id:'language',title:'컴퓨터·언어·플랫폼',summary:'CPU가 처리하는 명령과 사람이 작성하는 코드를 구분합니다.',paragraphs:['프로그램은 컴퓨터가 수행할 작업을 명령으로 표현한 것입니다. 기계어는 CPU가 처리하는 이진 명령이고, 어셈블리어는 기계 명령을 기호로 표현합니다. Java 같은 고급 언어는 사람이 알고리즘과 자료 구조를 표현하기 편하게 설계되었습니다.','플랫폼은 하드웨어와 운영체제 환경의 조합입니다. CPU 명령, 운영체제 API, 실행 파일 형식 등이 다르면 같은 실행 파일을 그대로 사용할 수 없을 수 있습니다.'],table:{headers:['구분','기억할 내용'],rows:[['기계어','CPU에 맞는 이진 명령'],['어셈블리어','기계 명령을 대응 기호로 표현'],['고급 언어','사람이 이해하기 편한 문법으로 작성'],['소스 파일','프로그래밍 언어로 작성한 텍스트']]},check:{q:'플랫폼은 운영체제만을 뜻할까요?',a:'아닙니다. 강의에서는 하드웨어와 운영체제 환경을 함께 뜻합니다.'},source:'1장 p.3~8'},
-{id:'flow',title:'WORA·바이트 코드·JVM',summary:'플랫폼 중립적인 바이트 코드와 플랫폼별 JVM이 핵심입니다.',paragraphs:['WORA는 Write Once Run Anywhere입니다. 자바 소스를 컴파일한 바이트 코드를 호환되는 JVM이 있는 여러 플랫폼에서 실행한다는 뜻입니다.','바이트 코드는 .class 파일에 저장되는 JVM용 중간 코드입니다. 플랫폼별 JVM이 이를 실행하므로 프로그램의 플랫폼 독립성이 가능합니다. JVM 자체의 구현은 운영체제와 하드웨어에 맞게 달라집니다.'],code:'Hello.java --javac--> Hello.class\n                         |\n                  각 플랫폼의 JVM\n                         |\n                        실행',pitfall:'“자바가 플랫폼 독립적이므로 JVM도 플랫폼 독립적이다”는 틀립니다. 바이트 코드의 중립성과 JVM 구현을 구분하세요.',check:{q:'WORA를 가능하게 하는 두 요소는?',a:'플랫폼 중립적인 바이트 코드와 각 플랫폼에 맞게 구현된 JVM입니다.'},source:'1장 p.9~13'},
-{id:'tools',title:'JDK·JRE와 개발 도구',summary:'개발 환경, 실행 환경, 가상 기계는 서로 다른 범위입니다.',table:{headers:['용어·도구','역할'],rows:[['JVM','바이트 코드를 실행하는 가상 기계'],['JRE','JVM과 실행에 필요한 라이브러리 등의 실행 환경'],['JDK','실행 환경과 컴파일러 등의 개발 도구'],['javac / java','소스 컴파일 / JVM을 통한 프로그램 실행'],['javadoc / jar','API 문서 생성 / 클래스·자원 묶음 관리'],['jdb / javap','디버깅 / 클래스 파일 정보·바이트 코드 확인'],['jmod / jlink','모듈 관리 / 필요한 모듈로 실행 환경 구성']]},code:'javac Hello.java  // Hello.class 생성\njava Hello        // .class 확장자는 붙이지 않음',paragraphs:['이 구분은 강의의 Java 10 환경을 기준으로 합니다. IDE는 편집·컴파일·실행·디버깅을 통합한 도구이며 Eclipse가 대표 사례입니다. IDE 자체와 JDK는 같은 뜻이 아닙니다.'],check:{q:'java와 javac 중 컴파일 명령은?',a:'javac입니다. java는 강의의 클래스 실행 방식에서 JVM을 작동해 프로그램을 실행합니다.'},source:'1장 p.14, 23~25'},
-{id:'files',title:'소스·클래스 파일과 main',summary:'파일 이름 규칙과 프로그램 시작점을 확인합니다.',paragraphs:['하나의 .java 파일에 여러 클래스를 선언할 수 있지만 public 최상위 클래스는 하나만 둘 수 있습니다. 파일 이름은 그 public 클래스 이름과 대소문자까지 같아야 합니다.','컴파일하면 선언된 클래스별로 .class 파일이 생성됩니다. 내부 클래스에는 A$B.class 같은 이름을 사용합니다. 강의의 응용프로그램 시작점은 public static void main(String[] args)입니다.'],code:'// 파일 이름: Hello.java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println("Hello");\n    }\n}\nclass Helper { } // 컴파일하면 Helper.class도 생성',pitfall:'클래스를 선언했다고 인스턴스 객체가 자동으로 하나 생성되는 것은 아닙니다. 클래스 정의와 new에 의한 객체 생성을 구분하세요.',check:{q:'Hello.java에 Hello와 Helper가 있으면 클래스 파일은 하나일까요?',a:'아닙니다. 이 예에서는 Hello.class와 Helper.class가 각각 생성됩니다.'},source:'1장 p.36~38; 2장 p.3~5'},
-{id:'organization',title:'API·패키지·모듈·응용 종류',summary:'클래스를 활용하고 묶는 단위를 이해합니다.',table:{headers:['용어','의미'],rows:[['API','입출력 등 자주 쓰는 기능을 미리 구현한 클래스 라이브러리'],['패키지','서로 관련된 클래스를 계층적 이름으로 묶는 단위'],['모듈','패키지와 자원을 묶는 단위. 필요한 구성만 선택하는 데 도움'],['Java SE / ME / EE','강의에서 표준 / 자원 제약 기기 / 기업·서버 응용 플랫폼으로 구분']]},paragraphs:['다른 패키지에는 같은 단순 이름의 클래스가 있을 수 있습니다. java.util.Scanner처럼 패키지를 포함한 이름으로 구별하며 필요한 클래스를 import해 사용합니다.','모듈화는 Java 9부터 도입되었습니다. 필요한 모듈만 포함하면 작은 실행 환경을 구성할 수 있습니다. 데스크톱 응용은 사용자 PC에서, 서블릿은 웹 서버에서 실행됩니다. 여러 클래스와 자원은 JAR로 묶어 배포할 수 있습니다.'],check:{q:'API, 패키지, 모듈은 모두 같은 뜻인가요?',a:'아닙니다. API는 제공되는 기능, 패키지와 모듈은 관련 클래스·자원을 조직하는 단위로 구분합니다.'},source:'1장 p.17~21, 33~38'},
-{id:'features',title:'객체 지향·GC·멀티스레드·JIT',summary:'언어의 장점과 실행상의 제약을 함께 봅니다.',bullets:['객체 지향: 캡슐화·상속·다형성을 지원해 재사용과 실세계 모델링을 돕습니다.','안전성: 엄격한 타입 검사, 배열 범위 검사, 직접적인 포인터 연산의 부재 등이 특징입니다.','GC: 더 이상 사용할 수 없는 객체의 메모리를 JVM이 자동으로 회수합니다. System.gc()는 수거 요청이며 즉시 실행을 보장하지 않습니다.','멀티스레드: 한 프로그램 안에서 여러 실행 흐름을 다룰 수 있습니다. 운영체제의 도움을 전혀 받지 않는다는 뜻은 아닙니다.','JIT: 실행 중 바이트 코드를 기계어로 컴파일하여 성능을 개선합니다.'],pitfall:'GC 중 일시 정지가 발생할 수 있어 엄격한 실시간 응답에는 제약이 있습니다. 멀티스레드 지원과 응답 시간 보장은 별개의 이야기입니다.',check:{q:'JIT는 언제 바이트 코드를 기계어로 바꾸나요?',a:'프로그램 실행 중입니다. 소스를 처음 .class로 만드는 javac와 구분합니다.'},source:'1장 p.36~39; 4장 p.45'}]},
-{id:2,title:'자료형·연산·조건',intro:'타입과 계산 순서를 먼저 판단하면 형 변환·연산 결과 문제를 안정적으로 풀 수 있습니다.',minutes:20,keywords:['기본 타입','형 변환','Scanner','조건문'],goals:['기본 타입과 참조 타입, 리터럴을 구분한다.','형 변환·증감·문자열 연결 결과를 계산한다.','입력과 if·switch의 실행 흐름을 설명한다.'],sections:[
-{id:'structure',title:'main·메소드·변수·식별자',summary:'메소드 호출, 매개변수, 반환값의 관계를 잡습니다.',code:'public class Hello {\n    static int sum(int n, int m) { return n + m; }\n    public static void main(String[] args) {\n        int result = sum(20, 10);\n        System.out.println(result); // 30\n    }\n}',paragraphs:['main의 public은 접근 허용, static은 객체 없이 호출 가능, void는 반환값 없음, String[] args는 실행 인자 배열을 뜻합니다. args라는 변수 이름 자체는 바꿀 수 있습니다. 메소드는 클래스 안에 작성하고 반환 타입·이름·매개변수 목록·본문으로 구성합니다.','지역 변수는 사용 전에 값을 대입해야 합니다. 식별자는 숫자로 시작할 수 없고 예약어·true·false·null을 사용할 수 없습니다. 대소문자를 구별하며 이름 안의 _와 $는 가능합니다. Java 9 이상에서 _ 하나만 이름으로 쓰는 것은 불가합니다.'],bullets:['// 한 줄 주석, /* ... */ 여러 줄 주석. 선언·대입·메소드 호출 문장은 보통 ;로 끝납니다.','print는 줄바꿈 없이 출력, println은 출력 후 줄바꿈, printf는 형식을 지정합니다.'],check:{q:'sum(20, 10)에서 n과 m은 무엇인가요?',a:'메소드의 매개변수입니다. 호출할 때 실제 인자 20과 10을 복사받으며 return으로 합을 돌려줍니다.'},source:'2장 p.3~7; 4장 p.33~34'},
-{id:'types',title:'기본 타입 8개와 참조 타입',summary:'String과 배열은 기본 타입이 아닙니다.',table:{headers:['타입','크기','핵심 특징'],rows:[['byte','1바이트','-128~127'],['short','2바이트','-32768~32767'],['int','4바이트','-2^31~2^31-1'],['long','8바이트','-2^63~2^63-1'],['char','2바이트','0~65535, UTF-16 코드 단위'],['float','4바이트','실수, 리터럴에 f'],['double','8바이트','기본 실수 리터럴 타입'],['boolean','저장 크기 단정 금지','true 또는 false']]},paragraphs:['기본 타입 변수는 값 자체를 저장하고 참조 타입 변수는 객체를 가리키는 참조 값을 저장합니다. 클래스·인터페이스·배열이 참조 타입이며 String도 클래스입니다. 수치 기본 타입의 크기는 CPU나 운영체제에 따라 바뀌지 않습니다. 필드와 배열 원소는 숫자 0, char 코드값 0, boolean false, 참조 null로 기본 초기화됩니다. 지역 변수는 사용 전 직접 초기화해야 합니다.'],pitfall:'강의의 boolean “1비트” 표기를 실제 저장 크기 보장으로 외우지 마세요. 두 논리값을 가지지만 실제 저장 크기를 언어 차원에서 1비트로 보장하지 않습니다.',check:{q:'int n = null;이 가능한가요?',a:'불가능합니다. null은 참조에 사용할 수 있으며 int 같은 기본 타입에 대입할 수 없습니다.'},source:'2장 p.8~16'},
-{id:'literals',title:'리터럴·상수·var',summary:'값 자체, 재대입 제한, 컴파일 시 타입 추론을 구분합니다.',code:'int a = 015;        // 팔진수: 십진수 13\nint b = 0x15;       // 십육진수: 십진수 21\nint c = 0b0101;     // 이진수: 십진수 5\nlong n = 24L;\nfloat f = 3.14f;\nchar ch = \'A\';     // "A"는 String\nfinal double PI = 3.14;\nvar price = 200;    // int로 결정됨',paragraphs:['리터럴은 코드에 직접 쓴 값입니다. 정수는 기본적으로 int, 실수는 double로 취급합니다. long 리터럴에는 L, float 리터럴에는 f를 붙입니다. 1234E-4는 0.1234입니다.','final 변수는 한 번 대입한 뒤 재대입할 수 없습니다. var는 Java 10부터 지역 변수의 타입을 초기값으로 추론합니다. 동적 타입이 아니므로 var x=1; 뒤에 x="A";는 오류입니다. var x;와 var x=null;도 타입을 결정할 수 없습니다.'],table:{headers:['특수문자 표기','뜻'],rows:[['\\n / \\t','줄바꿈 / 탭'],['\\b / \\f / \\r','백스페이스 / 폼 피드 / 캐리지 리턴'],['\\" / \\\' / \\\\','큰따옴표 / 작은따옴표 / 백슬래시']]},check:{q:'float f = 3.14;가 왜 오류인가요?',a:'3.14는 double 리터럴이라 float으로 자동 축소 변환되지 않습니다. 3.14f처럼 씁니다.'},source:'2장 p.12~19'},
-{id:'conversion',title:'자동·강제 형 변환과 나눗셈',summary:'대입받는 타입보다 연산 당시 타입을 먼저 봅니다.',paragraphs:['확대 변환의 대표 흐름은 byte → short → int → long → float → double이고 char → int도 가능합니다. boolean은 숫자 타입으로 변환할 수 없습니다. 정수에서 실수로 확대해도 정밀도가 손실될 수 있습니다.','강제 변환은 (타입)으로 지정합니다. 실수→정수는 소수 부분을 0 방향으로 버립니다. 큰 정수→작은 정수는 값이 달라질 수 있습니다. byte·short·char의 일반 산술 결과는 int로 승격될 수 있습니다.'],code:'double a = 10 / 4;          // 2.0\ndouble b = (double)10 / 4;  // 2.5\ndouble c = (double)(10/4);  // 2.0\nint d = (int)(2.9 + 1.8);   // 4\nbyte e = (byte)300;         // 44',pitfall:'정수 나눗셈이 끝난 뒤 double로 바꿔도 버려진 소수 부분은 돌아오지 않습니다. “연산 당시 타입 → 결과 → 대입 변환” 순서로 판단하세요.',check:{q:'(int)2.9 + (int)1.8의 결과는?',a:'3입니다. 각각 2와 1로 변환한 뒤 더합니다. 전체 합을 변환한 (int)(2.9+1.8)은 4입니다.'},source:'2장 p.21~23'},
-{id:'operators',title:'산술·증감·문자열·논리 연산',summary:'작은 식도 순서대로 추적하면 실수를 줄일 수 있습니다.',code:'int x = 3;\nint a = x++; // a=3, x=4\nint b = ++x; // b=5, x=5\nSystem.out.print("값=" + 1 + 2);   // 값=12\nSystem.out.print("값=" + (1 + 2)); // 값=3',bullets:['/는 나눗셈, %는 나머지입니다. 양수 69에서 69/10=6, 69%10=9입니다.','++x는 먼저 증가한 값을, x++는 기존 값을 사용합니다. +=, -=, *=, /=, %=는 계산 결과를 다시 대입합니다.','+는 왼쪽부터 계산하며 문자열이 참여하면 연결합니다. 곱셈은 덧셈보다 먼저이고 괄호로 순서를 바꿀 수 있습니다.','비교 결과는 boolean입니다. =는 대입이고 ==는 비교입니다. !는 부정, ^는 논리값이 다르면 true입니다.','&&는 앞이 false, ||는 앞이 true이면 뒤를 평가하지 않습니다. boolean의 &와 |는 양쪽을 평가합니다.','조건 ? A : B는 조건이 true면 A, false면 B를 선택합니다.'],pitfall:'byte b=1;에서 b=b+1;은 int 결과 때문에 오류지만 b+=1;은 복합 대입의 형 변환 규칙으로 가능합니다.',check:{q:'n=0일 때 n!=0 && 10/n>1은 예외인가요?',a:'아닙니다. 왼쪽이 false여서 오른쪽 나눗셈을 평가하지 않고 false가 됩니다.'},source:'2장 p.29~38'},
-{id:'input',title:'Scanner와 토큰·줄 입력',summary:'next()와 nextLine()은 읽는 단위가 다릅니다.',code:'import java.util.Scanner;\n// 메소드 안\nScanner sc = new Scanner(System.in);\nint age = sc.nextInt();\nsc.nextLine(); // 숫자 뒤 남은 줄 소비\nString name = sc.nextLine();',table:{headers:['메소드','역할'],rows:[['next()','공백으로 구분한 다음 토큰'],['nextInt() / nextDouble()','다음 토큰을 정수 / 실수로 읽기'],['nextBoolean()','다음 토큰을 논리값으로 읽기'],['nextLine()','현재 위치부터 줄 끝까지 읽고 줄 구분자는 제외'],['hasNext()','토큰 유무 확인. 입력을 기다릴 수도 있으며 소비하지 않음'],['close()','Scanner 사용 종료']]},paragraphs:['System.in은 바이트를 읽는 표준 입력 스트림입니다. Scanner가 이를 원하는 타입으로 해석합니다. nextInt() 뒤에는 줄 구분자가 남을 수 있어 다음 nextLine()이 빈 문자열을 반환할 수 있습니다.'],check:{q:'이름에 공백이 포함될 때 next()로 전체를 읽을 수 있나요?',a:'일반적인 기본 구분자 설정에서는 안 됩니다. 한 줄 전체를 읽으려면 nextLine()을 사용합니다.'},source:'2장 p.24~28'},
-{id:'conditions',title:'if·switch와 비트 연산',summary:'조건식의 타입과 분기 후 실행 흐름이 중요합니다.',paragraphs:['if의 조건식은 boolean입니다. 범위 검사 age>=20 && age<30은 가능하지만 20<=age<30은 오류입니다. if-else if는 처음 참인 분기를 실행합니다. 중괄호가 없으면 else는 짝 없는 가장 가까운 if에 연결됩니다.','강의의 case: 형식 switch는 일치 case부터 시작하고 break가 없으면 다음 case도 실행합니다. 맞는 case가 없으면 default로 갑니다. case에는 타입에 맞는 컴파일 시 상수가 필요하고 실수·일반 변수·범위 조건은 쓸 수 없습니다.'],code:'int n = 2;\nswitch (n) {\n    case 2: System.out.print("B");\n    case 3: System.out.print("C"); break;\n    default: System.out.print("D");\n} // BC',table:{headers:['비트 연산','역할'],rows:[['& / | / ^ / ~','각 비트의 AND / OR / XOR / 반전'],['<<','왼쪽 이동, 오른쪽은 0으로 채움'],['>>','오른쪽 이동, 왼쪽은 부호 비트로 채움'],['>>>','오른쪽 이동, 왼쪽은 0으로 채움']]},pitfall:'비트 검사는 (flag & 8)==0처럼 괄호를 넣으세요. flag & 8==0은 우선순위 때문에 의도한 정수 비교가 되지 않습니다.',check:{q:'-8 >> 2는 무엇인가요?',a:'-2입니다. >>는 왼쪽을 부호 비트로 채웁니다. >>>와 구분하세요.'},source:'2장 p.39~52'}]},
-{id:3,title:'반복·배열·예외',intro:'반복의 흐름을 따라가고, 배열과 참조를 연결한 뒤 실행 중 예외를 구분해 봅니다.',minutes:18,keywords:['반복문','배열·length','참조 공유','try·catch'],goals:['반복문과 break·continue의 흐름을 추적한다.','배열 선언·생성·공유·반환을 구분한다.','예외 이름과 처리 흐름을 설명한다.'],sections:[
-{id:'loops',title:'for·while·do-while',summary:'조건 검사가 실행 전인지 실행 후인지 구분합니다.',table:{headers:['반복문','실행 순서','최소 본문 실행'],rows:[['for','초기식 → 조건 → 본문 → 반복 후 작업 → 조건…','0회'],['while','조건 → 본문 → 조건…','0회'],['do-while','본문 → 조건 → 본문…','1회']]},code:'int sum = 0;\nfor (int i=1; i<=3; i++) sum += i; // 6\n\nint n = 0;\ndo { n++; } while (false); // n=1',bullets:['for에서 선언한 int i는 해당 for 범위 밖에서 사용할 수 없습니다.','for(;;)와 while(true)는 무한 반복 형태입니다.','중첩 반복은 안쪽 반복문을 바깥 반복마다 다시 실행합니다. 독립적인 3회×4회는 본문 12회입니다.','do-while은 끝에 세미콜론이 필요합니다.'],check:{q:'while의 초기 조건이 false이면 본문을 한 번 실행하나요?',a:'아닙니다. while은 본문 전에 조건을 검사하므로 0회 실행할 수 있습니다.'},source:'3장 p.3~10'},
-{id:'control',title:'break·continue·return',summary:'어디를 건너뛰고 어디를 끝내는지 구분합니다.',bullets:['break는 가장 가까운 반복문 또는 switch 하나를 끝냅니다. 안쪽 반복문의 break가 바깥 반복문까지 끝내지는 않습니다.','continue는 현재 반복의 남은 본문을 건너뜁니다. for에서는 반복 후 작업을 거쳐 조건 검사로 이동합니다. while에서는 조건 검사로 이동합니다.','return은 현재 메소드 실행을 끝냅니다. 반환 타입이 있으면 적절한 값을 돌려줍니다.'],code:'int sum = 0;\nfor (int i=1; i<=5; i++) {\n    if (i==2) continue;\n    if (i==5) break;\n    sum += i;\n} // 1+3+4=8',pitfall:'while의 증가 코드 앞에서 continue하면 증가를 건너뛰어 무한 반복이 될 수 있습니다. 조건·본문·변수 변경을 한 줄씩 추적하세요.',check:{q:'위 코드에서 5도 합계에 들어가나요?',a:'아닙니다. sum에 더하기 전에 break가 실행되어 반복을 끝냅니다.'},source:'3장 p.11~14'},
-{id:'arrays',title:'배열 선언·생성·인덱스',summary:'참조 변수 선언과 배열 공간 생성을 분리해서 봅니다.',code:'int[] a;          // 지역 참조 변수 선언\na = new int[3];   // 배열 생성, 원소 0으로 초기화\nint[] b = {4, 5, 6};\nSystem.out.println(a.length); // 3\n// a[3]은 범위 초과: 유효 인덱스는 0,1,2',paragraphs:['배열은 같은 타입의 원소를 인덱스로 다루는 객체입니다. 배열 변수는 배열 객체의 참조를 저장합니다. int a[3];은 자바의 올바른 선언이 아닙니다.','배열 인덱스는 0~length-1입니다. 길이는 a.length 필드이고 문자열 길이 s.length()와 구분합니다. 생성한 배열의 길이는 바뀌지 않지만 참조 변수에 다른 배열을 대입할 수 있습니다.'],pitfall:'초기화하지 않은 지역 배열 변수 사용은 컴파일 오류입니다. null인 배열로 원소에 접근하면 NullPointerException, 잘못된 인덱스는 ArrayIndexOutOfBoundsException입니다.',check:{q:'new int[5]의 마지막 원소는 a[5]인가요?',a:'아닙니다. a[4]입니다. length는 원소 개수이며 마지막 인덱스가 아닙니다.'},source:'3장 p.15~23'},
-{id:'sharing',title:'참조 공유·for-each',summary:'참조 복사와 원소 복사를 혼동하지 않습니다.',code:'int[] a = {1, 2};\nint[] b = a;\nb[0] = 9; // a[0]도 9\nfor (int v : a) v = 0; // a는 {9,2} 그대로',paragraphs:['b=a는 배열 전체를 복사하지 않고 참조 값을 복사합니다. 두 변수가 같은 배열을 공유하므로 b로 수정한 원소를 a에서도 읽을 수 있습니다.','for-each는 배열 원소를 순서대로 접근합니다. 기본 타입의 반복 변수 v는 원소 값을 복사받으므로 v에 다시 대입해도 배열 원소는 바뀌지 않습니다. 원소 자체를 수정하려면 인덱스로 접근합니다.'],check:{q:'for(int v:a) v=0;으로 int 배열을 모두 0으로 만들 수 있나요?',a:'아닙니다. 반복 변수만 바뀝니다. for(int i=0;i<a.length;i++) a[i]=0;처럼 원소에 대입해야 합니다.'},source:'3장 p.21, 26~27'},
-{id:'dimensions',title:'2차원 배열·합계·평균·최대값',summary:'행 길이, 계산 타입, 초기값을 확인합니다.',code:'int[][] m = {{1,2},{3,4,5}};\n// m.length=2, m[0].length=2, m[1].length=3\nint sum=0, count=0;\nfor (int[] row : m) {\n    for (int v : row) { sum += v; count++; }\n}\ndouble avg = (double)sum / count; // 3.0',bullets:['2차원 배열은 배열의 배열입니다. 바깥 length는 행 개수, m[i].length는 i번째 행 길이입니다.','행마다 길이가 다를 수 있습니다. 전체 원소 개수는 각 행 길이의 합으로 구합니다.','평균은 정수 나눗셈을 피하고, 개수가 0인 경우를 따로 처리합니다. 종료 입력 0을 데이터에 포함하지 않는 예제도 있습니다.','비어 있지 않은 일반 배열의 최대값은 첫 원소 등으로 초기화합니다. max=0은 양수 입력 전제에 맞춘 값입니다.'],check:{q:'음수만 있는 배열에서 max=0으로 시작하면 왜 문제인가요?',a:'실제 원소보다 큰 0이 남아 배열에 없는 값을 최대값으로 잘못 판단할 수 있습니다.'},source:'3장 p.6, 22~30'},
-{id:'return',title:'배열 반환과 수명',summary:'메소드가 끝나도 반환된 배열을 계속 참조할 수 있습니다.',code:'static int[] makeArray() {\n    int[] temp = {0,1,2,3};\n    return temp;\n}\n// 호출하는 메소드 안\nint[] a = makeArray();',paragraphs:['반환 타입은 int[]처럼 쓰고 int[4]처럼 크기를 넣지 않습니다. 반환하는 것은 배열 참조 값이지 원소 전체의 복사가 아닙니다.','지역 변수 temp는 메소드 실행이 끝나면 범위를 벗어나지만, 반환받은 a가 배열을 참조하므로 배열 객체를 계속 사용할 수 있습니다. 배열은 length가 있어 메소드에 크기를 반드시 별도 전달할 필요도 없습니다.'],check:{q:'makeArray()가 끝나면 위의 배열도 즉시 없어지나요?',a:'아닙니다. 호출자가 참조를 받아 배열에 도달할 수 있으므로 계속 사용할 수 있습니다.'},source:'3장 p.24, 31~33'},
-{id:'exceptions',title:'예외 종류와 try·catch·finally',summary:'컴파일 오류와 실행 중 예외를 구분합니다.',table:{headers:['예외','대표 상황'],rows:[['ArithmeticException','정수 / 또는 %의 오른쪽 값이 0'],['ArrayIndexOutOfBoundsException','배열 인덱스 범위 초과'],['NullPointerException','null로 인스턴스 멤버·배열에 접근'],['InputMismatchException','nextInt()에 정수로 읽을 수 없는 토큰'],['ClassCastException','실제 객체에 맞지 않는 참조 타입 캐스팅'],['NumberFormatException','숫자 형식이 아닌 문자열의 숫자 변환'],['IllegalArgumentException / IOException','부적절한 인자 / 입출력 실패']]},code:'int z=0;\ntry {\n    System.out.print("A");\n    int n=10/z;\n    System.out.print("B");\n} catch (ArithmeticException e) {\n    System.out.print("C");\n} finally { System.out.print("D"); } // ACD',paragraphs:['예외가 발생하면 try의 남은 코드를 건너뛰고 처리 가능한 catch로 이동합니다. 맞는 catch가 없으면 바깥으로 전파됩니다. 정상 실행이면 catch를 건너뜁니다. finally는 일반적인 정상·예외·return 흐름에서 정리 코드를 실행하며 생략할 수 있습니다.','nextInt() 실패 후에는 잘못된 토큰을 next() 등으로 소비해야 같은 토큰 때문에 반복 실패하지 않습니다. OutOfMemoryError는 표에 함께 나오지만 Exception이 아닌 Error입니다.'],pitfall:'실수의 1.0/0.0은 Infinity이고 정수의 0 나눗셈과 다릅니다. finally도 JVM 강제 종료 같은 상황까지 실행을 보장하지는 않습니다.',check:{q:'try의 A 출력 뒤 예외가 발생하면 B도 출력하나요?',a:'아닙니다. try의 남은 부분을 건너뛰므로 예제에서는 catch C와 finally D가 이어져 ACD입니다.'},source:'3장 p.34~41'}]},
-{id:4,title:'클래스와 객체',intro:'클래스·객체·참조를 분리해서 이해하면 생성자와 static, 인자 전달이 한 흐름으로 연결됩니다.',minutes:22,keywords:['생성자','this','참조 전달','static·final'],goals:['클래스와 인스턴스, 필드와 메소드를 구분한다.','생성자·this·객체 배열과 참조 전달을 설명한다.','접근 지정자·static·final·GC를 비교한다.'],sections:[
-{id:'objects',title:'객체 지향과 클래스·객체',summary:'설계도와 실행 중 생성된 실체는 다른 개념입니다.',table:{headers:['개념','의미'],rows:[['클래스','객체의 상태와 동작을 선언한 설계도'],['객체·인스턴스','클래스를 바탕으로 실행 중 생성된 구체적 실체'],['필드 / 메소드','상태를 저장 / 동작을 수행'],['캡슐화','데이터와 동작을 묶고 접근을 제어해 내부를 보호'],['상속 / 다형성','기존 특성 재사용·확장 / 같은 동작을 다양한 구현으로 처리']]},code:'class Circle {\n    int radius;\n    double area() { return 3.14*radius*radius; }\n}\n// 메소드 안\nCircle c;         // 참조 변수만 선언\nc = new Circle(); // 객체 생성\nc.radius = 2;\ndouble a = c.area();',paragraphs:['절차 지향은 작업 순서와 함수 중심이고 객체 지향은 객체와 상호작용 중심입니다. 재사용·부분 수정·실세계 모델링이 쉬워 생산성을 높이는 것이 목적입니다. 같은 클래스로 만든 객체도 서로 다른 필드 값을 가질 수 있습니다.'],check:{q:'클래스는 메모리 공간을 갖지 않는다는 표현을 어떻게 이해할까요?',a:'클래스 정의 자체가 인스턴스마다의 필드 공간은 아니라는 뜻으로 이해해야 합니다. 클래스 관련 정보와 static 데이터도 메모리를 사용하므로 클래스가 메모리를 전혀 쓰지 않는다는 절대 명제로 외우면 안 됩니다.'},source:'4장 p.3~16'},
-{id:'constructors',title:'생성자와 기본 생성자',summary:'이름, 반환 타입, 자동 제공 조건이 핵심입니다.',paragraphs:['생성자는 객체 생성 과정에서 초기화를 담당합니다. 클래스와 이름이 같고 반환 타입을 쓰지 않습니다. void도 쓰지 않습니다. 매개변수 목록을 달리해 여러 생성자를 둘 수 있습니다.','생성자를 하나도 선언하지 않았을 때 컴파일러가 기본 생성자를 제공합니다. 생성자를 하나라도 직접 선언하면 인자 없는 생성자는 자동 제공되지 않습니다.'],code:'class Book {\n    String title;\n    Book(String title) { this.title = title; }\n}\n// new Book();       // 컴파일 오류\n// new Book("Java"); // 가능',pitfall:'void Book() {}는 생성자가 아니라 일반 메소드입니다. 이 선언 자체가 반드시 문법 오류인 것은 아닙니다. “인자 없는 생성자”와 “컴파일러가 자동 제공하는 기본 생성자”도 구분하세요.',check:{q:'Book(String)을 선언하면 Book()도 자동으로 생기나요?',a:'아닙니다. 생성자를 하나라도 직접 선언했으므로 필요한 인자 없는 생성자도 직접 선언해야 합니다.'},source:'4장 p.17~23'},
-{id:'this',title:'this와 this()',summary:'현재 객체 참조와 생성자 위임 호출을 구분합니다.',code:'class Circle {\n    int radius;\n    Circle() { this(1); }\n    Circle(int radius) { this.radius = radius; }\n}',paragraphs:['this는 현재 객체를 가리키는 참조입니다. this.radius는 필드, 오른쪽 radius는 매개변수여서 같은 이름을 구별할 수 있습니다.','this(...)는 같은 클래스의 다른 생성자 호출입니다. 강의의 Java 10 문법에서는 생성자의 첫 문장이어야 하고 생성자 호출이 순환하면 안 됩니다. static 메소드에서는 현재 객체가 정해져 있지 않으므로 this를 사용할 수 없습니다.'],check:{q:'new Circle()에서 위 생성자들은 어떻게 연결되나요?',a:'Circle()에서 this(1)로 Circle(int)를 호출해 반지름을 1로 초기화합니다. 객체를 두 개 만든다는 뜻은 아닙니다.'},source:'4장 p.24~28, 60'},
-{id:'object-arrays',title:'객체 배열과 메소드 오버로딩',summary:'배열 생성과 원소 객체 생성, 메소드 선언 구분 기준을 봅니다.',code:'Circle[] a = new Circle[3]; // 원소는 모두 null\nfor (int i=0; i<a.length; i++)\n    a[i] = new Circle(i+1); // 각 객체 별도 생성',paragraphs:['객체 배열은 객체 참조의 배열입니다. 위 코드를 모두 실행하면 배열 객체 1개와 Circle 객체 3개가 생성됩니다. 원소 객체를 만들기 전에 a[0].radius에 접근하면 NullPointerException입니다.','오버로딩은 같은 이름의 메소드를 매개변수 목록이 다르게 선언하는 것입니다. 개수·타입·타입 순서가 구분 기준이고, 반환 타입 또는 매개변수 이름만 바꾸는 것은 불가합니다.'],table:{headers:['기존 선언','추가 선언','판단'],rows:[['int f(int x)','int f(double x)','가능: 타입 차이'],['int f(int x)','int f(int x, int y)','가능: 개수 차이'],['int f(int x)','double f(int y)','불가: 반환 타입·이름만 차이']]},check:{q:'new Circle[3]이 Circle 생성자를 3번 호출하나요?',a:'아닙니다. 참조 배열만 만들며 원소는 null입니다. 각 원소의 Circle 객체는 별도로 생성해야 합니다.'},source:'4장 p.29~40'},
-{id:'references',title:'값 전달·참조 공유·재대입',summary:'자바의 인자 전달은 모두 값의 복사입니다.',paragraphs:['기본 타입은 데이터 값을, 참조 타입은 참조 값을 복사하여 매개변수에 전달합니다. 참조 값을 복사받은 매개변수가 같은 객체를 가리키므로 내부 상태 변경이 호출자에게 보일 수 있습니다.','하지만 매개변수에 다른 객체를 대입하는 것은 매개변수만 바꿉니다. 호출자의 참조 변수 자체가 바뀌지는 않습니다. 객체 변수 대입도 객체 전체 복사가 아니라 참조 값 복사입니다.'],code:'static void edit(int[] x) { x[0]=9; }\nstatic void replace(int[] x) { x=new int[]{7}; }\n// main 안\nint[] a={1};\nedit(a);    // a[0]=9\nreplace(a); // a[0]은 여전히 9',pitfall:'“객체는 참조로 전달된다”만 외우면 재대입 문제를 틀리기 쉽습니다. 정확히는 “참조 값이 복사되는 값 전달”입니다. 객체의 ==는 동일 객체 참조 비교이고 문자열 내용 비교는 equals()를 사용합니다.',check:{q:'메소드 안에서 매개변수 x=null;로 바꾸면 호출자의 a도 null인가요?',a:'아닙니다. 복사된 매개변수 참조만 바뀌므로 호출자의 a는 기존 객체를 계속 참조합니다.'},source:'4장 p.34~41; 3장 p.14'},
-{id:'access',title:'접근 지정자와 패키지',summary:'클래스 자체의 접근 가능성과 멤버 접근을 함께 봅니다.',table:{headers:['지정자','같은 클래스','같은 패키지의 다른 일반 클래스','다른 패키지'],rows:[['private','가능','불가','직접 접근 불가'],['생략(package-private)','가능','가능','불가'],['protected','가능','가능','하위 클래스에서 조건에 맞게 가능'],['public','가능','가능','클래스 자체도 접근 가능하면 가능']]},paragraphs:['최상위 클래스는 public 또는 접근 지정자 생략을 사용합니다. private·protected는 최상위 클래스의 접근 지정자로 사용할 수 없습니다.','서로 다른 패키지의 하위 클래스에서 protected 멤버를 접근할 수 있지만, 임의의 상위 타입 객체를 통해 모두 접근 가능한 것은 아닙니다. 기본 공개 범위를 익히고 실제 참조 타입도 확인하세요.'],check:{q:'같은 패키지이면 다른 일반 클래스의 private 필드를 직접 읽을 수 있나요?',a:'아닙니다. 같은 패키지라도 private 필드에는 직접 접근할 수 없습니다.'},source:'4장 p.46~52'},
-{id:'static-final',title:'static과 final',summary:'소속·공유와 재대입·상속 제한은 다른 축입니다.',table:{headers:['구분','인스턴스 멤버','static 멤버'],rows:[['소속','객체','클래스'],['필드 저장','객체별 독립','같은 클래스 객체들이 공유'],['대표 접근','객체참조.멤버','클래스명.멤버'],['현재 객체 this','인스턴스 문맥에서 가능','static 메소드에서는 불가']]},paragraphs:['static 메소드는 인스턴스 멤버를 객체 없이 직접 접근할 수 없습니다. 그러나 객체 참조를 통해 접근하는 것은 가능합니다. 인스턴스 메소드에서 static 멤버를 사용하는 것도 가능합니다.','final 변수는 한 번 대입한 후 재대입 금지, final 메소드는 오버라이딩 금지, final 클래스는 상속 금지입니다. static final은 클래스가 공유하는 재대입 불가 변수입니다. 초기값 없는 final 인스턴스 필드는 생성자에서 확정적으로 초기화할 수도 있습니다.'],code:'final int[] a={1,2};\na[0]=9;          // 가능: 내부 원소 변경\n// a=new int[2]; // 불가: final 참조 재대입',pitfall:'final 참조가 가리키는 객체의 내부까지 모두 불변이 되는 것은 아닙니다. 또한 메소드 코드가 인스턴스마다 통째로 복사된다고 이해하지 마세요.',check:{q:'static 필드는 자동으로 상수인가요?',a:'아닙니다. static은 클래스 소속·공유를 뜻합니다. 재대입 제한은 final의 역할입니다.'},source:'4장 p.53~62'},
-{id:'gc',title:'가비지와 객체의 수명',summary:'참조 해제와 즉시 삭제는 다릅니다.',code:'Object a=new Object();\nObject b=a;\na=null; // b로 여전히 접근 가능\nb=null; // 다른 참조가 없다면 기존 객체는 수거 대상',paragraphs:['가비지는 프로그램이 더 이상 도달할 수 없는 객체입니다. 단순한 강의 예제에서는 아무 참조도 남지 않은 객체로 판단하면 됩니다. JVM의 가비지 컬렉터가 메모리를 자동으로 회수합니다.','null 대입은 참조 연결을 끊는 것이고 즉시 삭제 명령이 아닙니다. System.gc()도 수거 요청일 뿐입니다. Java에는 C++의 delete 같은 직접 객체 삭제 연산자가 없습니다.'],check:{q:'a=null 직후 위 객체가 가비지인가요?',a:'아닙니다. b가 여전히 같은 객체를 참조하므로 접근할 수 있습니다.'},source:'4장 p.41~45'}]},
-{id:5,title:'상속·다형성',intro:'참조 변수의 타입과 실제 객체의 타입을 나누어 보는 것이 5장 코드 해석의 출발점입니다.',minutes:22,keywords:['super','업·다운캐스팅','오버라이딩','추상·인터페이스'],goals:['상속과 생성자 실행 순서를 설명한다.','캐스팅의 컴파일 가능 여부와 실제 객체 타입을 구분한다.','동적 바인딩·추상 클래스·인터페이스를 비교한다.'],sections:[
-{id:'inheritance',title:'extends와 상속의 목적',summary:'중복을 줄이고 기존 특성을 재사용·확장합니다.',code:'class Point {\n    private int x;\n    public void setX(int n) { x=n; }\n}\nclass ColorPoint extends Point {\n    String color;\n}',paragraphs:['상위 클래스는 슈퍼 클래스, 하위 클래스는 서브 클래스라고 합니다. extends로 기존 클래스를 확장하여 중복을 줄이고 새로운 특성을 추가합니다.','자바 클래스는 하나의 클래스를 직접 상속합니다. 여러 클래스의 다중 상속은 불가하지만 여러 인터페이스를 구현할 수 있습니다. Object 자신을 제외한 클래스는 직접 또는 간접적으로 java.lang.Object를 상속합니다.'],pitfall:'하위 객체 안에 상위 부분의 상태가 존재한다고 해서 상위의 private 필드를 하위 클래스 코드에서 직접 읽을 수 있는 것은 아닙니다. public 메소드 등을 통해 접근합니다.',check:{q:'class C extends A, B는 가능한가요?',a:'자바 클래스 다중 상속이므로 불가능합니다. 한 클래스 상속과 여러 인터페이스 구현을 구분하세요.'},source:'5장 p.3~12'},
-{id:'super-constructors',title:'상속 시 생성자와 super()',summary:'부모 생성자 본문이 자식 생성자 본문보다 먼저 실행됩니다.',code:'class A { A(int n) { System.out.print("A"); } }\nclass B extends A {\n    B() { super(1); System.out.print("B"); }\n}\n// new B(); → AB',paragraphs:['하위 객체 생성 시 상위 클래스의 생성자도 실행됩니다. 생성자 본문의 실행은 상위에서 하위 순서입니다. 생성자를 메소드처럼 상속받는다는 뜻은 아닙니다.','this(...)나 super(...)를 명시하지 않은 생성자에는 묵시적으로 super()가 들어갑니다. 상위에 접근 가능한 인자 없는 생성자가 없으면 컴파일 오류입니다. super(인자)로 적절한 상위 생성자를 선택할 수 있습니다.','강의 Java 10 문법에서 this(...)와 super(...)는 생성자의 첫 문장이므로 같은 생성자에서 둘을 나란히 호출할 수 없습니다. this(...)로 위임한 생성자 경로에서도 결국 상위 생성자를 호출합니다.'],check:{q:'A(int)만 있는 A를 상속하면서 B()를 비워 두면?',a:'묵시적 super()가 호출할 A()가 없어 컴파일 오류입니다. B()에서 super(1)처럼 지정할 수 있습니다.'},source:'5장 p.13~21'},
-{id:'upcasting',title:'업캐스팅과 접근 가능한 멤버',summary:'참조 타입이 바뀌어도 실제 객체는 바뀌지 않습니다.',code:'class Person { String name; }\nclass Student extends Person { String grade; }\n// 메소드 안\nStudent s=new Student();\nPerson p=s;       // 자동 업캐스팅\np.name="Kim";     // 가능\n// p.grade="A";   // 컴파일 오류',paragraphs:['업캐스팅은 하위 객체의 참조를 상위 타입 변수에 대입하는 것입니다. 별도 객체를 만들거나 실제 객체의 하위 부분을 삭제하지 않습니다. p와 s는 같은 Student 객체를 참조합니다.','컴파일 시 접근할 수 있는 멤버는 참조 변수의 선언 타입을 기준으로 판단합니다. Person에 선언되지 않은 grade는 p.grade로 직접 접근할 수 없습니다. 이는 오버라이딩된 메소드 실행 대상과는 구분해야 합니다.'],check:{q:'실제 객체가 Student인데 p.grade가 왜 오류인가요?',a:'p의 선언 타입 Person에는 grade가 없기 때문입니다. 컴파일 시 멤버 접근은 선언 타입을 기준으로 검사합니다.'},source:'5장 p.22~24'},
-{id:'downcasting',title:'다운캐스팅과 instanceof',summary:'명시적 캐스팅은 실제 객체의 타입을 바꾸는 마법이 아닙니다.',code:'Person p=new Student();\nif (p instanceof Student) {\n    Student s=(Student)p; // 실제 객체가 맞으면 성공\n}\nPerson other=new Person();\n// Student bad=(Student)other; // ClassCastException',paragraphs:['다운캐스팅은 상위 타입 참조를 하위 타입으로 명시적 변환하는 것입니다. 컴파일 가능 여부와 실행 시 실제 객체 적합성은 별도입니다. 실제 객체가 해당 하위 타입이 아니면 ClassCastException이 발생할 수 있습니다.','instanceof는 참조가 가리키는 객체가 해당 타입으로 볼 수 있는지 검사하여 boolean을 반환합니다. Student 객체는 Student이면서 Person입니다. null instanceof 타입은 false이고 기본 타입 값에는 사용하지 않습니다.'],check:{q:'A x=new B();에서 x instanceof A와 x instanceof B는?',a:'B extends A라면 둘 다 true입니다. 변수 선언 타입만 검사하는 연산자가 아닙니다.'},source:'5장 p.25~29'},
-{id:'overriding',title:'오버라이딩·동적 바인딩·super',summary:'호출 가능한 메소드는 선언 타입으로, 실행 구현은 실제 객체로 봅니다.',code:'class A { void f() { System.out.print("A"); } }\nclass B extends A {\n    @Override void f() {\n        super.f();\n        System.out.print("B");\n    }\n}\n// 메소드 안\nA x=new B();\nx.f(); // AB',paragraphs:['오버라이딩은 상속받은 인스턴스 메소드를 하위 클래스에서 재정의하는 것입니다. 같은 이름·매개변수 목록을 사용하고 반환 타입 규칙을 지켜야 하며 접근 범위를 좁힐 수 없습니다. final 메소드는 오버라이딩할 수 없습니다.','일반적인 인스턴스 메소드 호출은 실제 객체에 맞는 오버라이딩 구현을 실행합니다. 이것이 동적 바인딩입니다. super.f()는 상위 구현을 명시적으로 호출합니다. 필드나 static 메소드까지 같은 동적 바인딩 규칙으로 판단하지 마세요.'],table:{headers:['구분','오버로딩','오버라이딩'],rows:[['핵심','같은 이름, 다른 매개변수 목록','상속받은 인스턴스 메소드 재정의'],['판단 시점의 핵심','인자와 선언을 기준으로 메소드 선택','실제 객체에 따른 구현 실행'],['반환 타입','반환 타입만 바꾸면 불가','동일 타입 또는 허용되는 공변 반환']]},check:{q:'위 코드에서 x가 A 타입인데 B.f()가 호출되는 이유는?',a:'실제 객체가 B이고 f()가 오버라이딩되어 동적 바인딩되기 때문입니다. B.f() 안에서 super.f()로 A를 먼저 출력합니다.'},source:'5장 p.30~37'},
-{id:'abstract',title:'추상 클래스와 추상 메소드',summary:'직접 생성할 수 없는 공통 틀을 선언합니다.',code:'abstract class Shape {\n    Shape() { } // 생성자는 가질 수 있음\n    public abstract void draw();\n    void edit() { } // 일반 메소드도 가능\n}\nclass Circle extends Shape {\n    @Override public void draw() { }\n}\n// Shape s=new Circle(); // 가능\n// new Shape();         // 불가',paragraphs:['추상 메소드는 abstract로 선언하고 본문 없이 ;로 끝납니다. 추상 메소드를 가진 클래스는 abstract여야 하지만, 추상 메소드가 없어도 abstract 클래스로 선언할 수 있습니다.','추상 클래스의 참조 변수 선언은 가능하나 직접 new로 인스턴스화할 수 없습니다. 추상 메소드를 모두 구현하지 않은 하위 클래스도 abstract여야 합니다. 모두 구현한 일반 하위 클래스는 객체를 생성할 수 있습니다.'],check:{q:'추상 클래스는 생성자나 일반 메소드가 없어야 하나요?',a:'아닙니다. 생성자·필드·일반 메소드를 가질 수 있습니다. 직접 인스턴스화가 불가능하다는 점과 구분하세요.'},source:'5장 p.38~43'},
-{id:'interfaces',title:'인터페이스·implements·다중 구현',summary:'구현 클래스가 지킬 규격을 정의합니다.',code:'interface Phone {\n    int TIMEOUT=1000; // public static final\n    void call();     // public abstract\n    default void logo() { System.out.print("P"); }\n}\nclass SmartPhone implements Phone {\n    @Override public void call() { }\n}',paragraphs:['인터페이스는 interface로 선언하고 클래스는 implements로 구현합니다. 상수 필드는 public static final, 일반적인 추상 메소드는 public abstract를 생략할 수 있습니다. 구현할 때 접근 범위를 줄여 public을 빠뜨리지 않도록 주의하세요.','인터페이스 자체를 직접 new로 생성하지는 못하지만 인터페이스 타입의 참조로 구현 객체를 가리킬 수 있습니다. 인터페이스는 여러 인터페이스를 extends할 수 있고 클래스는 한 클래스를 extends하면서 여러 인터페이스를 implements할 수 있습니다.','default 메소드는 구현 코드가 있고 구현 클래스가 상속받습니다. 인터페이스에는 static 메소드와 내부 코드 공유를 위한 private 메소드도 가능합니다. default·static 메소드는 Java 8부터, private 메소드는 Java 9부터입니다. 인스턴스 필드는 선언하지 않습니다.'],pitfall:'“인터페이스는 추상 메소드만 가진다”는 강의 버전에서도 맞지 않습니다. default·static·private 메소드와 상수 필드를 구분하세요. 이 버전 표기는 자료의 static 도입 시점 설명을 보완했습니다.',check:{q:'class C extends A implements I, J가 가능한가요?',a:'가능합니다. 한 클래스 상속과 여러 인터페이스 구현을 함께 사용할 수 있습니다. 일반 클래스라면 필요한 추상 메소드를 모두 구현해야 합니다.'},source:'5장 p.44~52',references:[{label:'Java SE 10 인터페이스 명세',url:'https://docs.oracle.com/javase/specs/jls/se10/html/jls-9.html'}]}
-]}
-];
-chapters.forEach(c=>c.sections.forEach(s=>s.key=`ch${c.id}-${s.id}`));
-root.JAVA_LESSONS=chapters;
-if(typeof module!=='undefined')module.exports=chapters;
-})(typeof window!=='undefined'?window:globalThis);
+/* Expanded course notes, scope revised 2026-10-20. */
+(function(root){const chapters=[
+  {
+    "id": 1,
+    "title": "자바 실행 원리",
+    "intro": "소스 코드가 실행되는 과정을 알면 WORA와 개발 환경의 차이가 자연스럽게 연결됩니다.",
+    "minutes": 18,
+    "keywords": [
+      "WORA",
+      "JVM",
+      "바이트 코드",
+      "JDK·JRE"
+    ],
+    "goals": [
+      "자바가 플랫폼 독립적인 이유를 설명한다.",
+      "컴파일과 실행 명령, 소스와 클래스 파일을 구분한다.",
+      "API·패키지·모듈과 주요 언어 특성을 연결한다."
+    ],
+    "sections": [
+      {
+        "id": "language",
+        "title": "컴퓨터·언어·플랫폼",
+        "summary": "CPU가 처리하는 명령과 사람이 작성하는 코드를 구분합니다.",
+        "paragraphs": [
+          "프로그램은 컴퓨터가 수행할 작업을 명령으로 표현한 것입니다. 기계어는 CPU가 처리하는 이진 명령이고, 어셈블리어는 기계 명령을 기호로 표현합니다. Java 같은 고급 언어는 사람이 알고리즘과 자료 구조를 표현하기 편하게 설계되었습니다.",
+          "플랫폼은 하드웨어와 운영체제 환경의 조합입니다. CPU 명령, 운영체제 API, 실행 파일 형식 등이 다르면 같은 실행 파일을 그대로 사용할 수 없을 수 있습니다."
+        ],
+        "table": {
+          "headers": [
+            "구분",
+            "기억할 내용"
+          ],
+          "rows": [
+            [
+              "기계어",
+              "CPU에 맞는 이진 명령"
+            ],
+            [
+              "어셈블리어",
+              "기계 명령을 대응 기호로 표현"
+            ],
+            [
+              "고급 언어",
+              "사람이 이해하기 편한 문법으로 작성"
+            ],
+            [
+              "소스 파일",
+              "프로그래밍 언어로 작성한 텍스트"
+            ]
+          ]
+        },
+        "check": {
+          "q": "플랫폼은 운영체제만을 뜻할까요?",
+          "a": "아닙니다. 강의에서는 하드웨어와 운영체제 환경을 함께 뜻합니다."
+        },
+        "source": "1장 p.3~8",
+        "key": "ch1-language",
+        "easy": "같은 문서를 읽는 서로 다른 번역기를 떠올려 보세요. CPU와 운영체제가 다르면 직접 이해하는 명령 형식도 달라질 수 있습니다. Java는 그 차이를 JVM이 맡도록 구성합니다.",
+        "steps": [
+          "먼저 소스 언어와 CPU가 실행하는 기계어를 구분합니다.",
+          "플랫폼 차이는 하드웨어와 운영체제를 함께 확인합니다.",
+          "이 차이를 JVM이 중간에서 처리한다는 흐름으로 다음 개념을 연결합니다."
+        ],
+        "examTip": "“고급 언어”는 사람이 읽기 쉬운 추상화 수준을 말하며, 무조건 실행 속도가 빠르다는 뜻은 아닙니다."
+      },
+      {
+        "id": "flow",
+        "title": "WORA·바이트 코드·JVM",
+        "summary": "플랫폼 중립적인 바이트 코드와 플랫폼별 JVM이 핵심입니다.",
+        "paragraphs": [
+          "WORA는 Write Once Run Anywhere입니다. 자바 소스를 컴파일한 바이트 코드를 호환되는 JVM이 있는 여러 플랫폼에서 실행한다는 뜻입니다.",
+          "바이트 코드는 .class 파일에 저장되는 JVM용 중간 코드입니다. 플랫폼별 JVM이 이를 실행하므로 프로그램의 플랫폼 독립성이 가능합니다. JVM 자체의 구현은 운영체제와 하드웨어에 맞게 달라집니다."
+        ],
+        "code": "Hello.java --javac--> Hello.class\n                         |\n                  각 플랫폼의 JVM\n                         |\n                        실행",
+        "pitfall": "“자바가 플랫폼 독립적이므로 JVM도 플랫폼 독립적이다”는 틀립니다. 바이트 코드의 중립성과 JVM 구현을 구분하세요.",
+        "check": {
+          "q": "WORA를 가능하게 하는 두 요소는?",
+          "a": "플랫폼 중립적인 바이트 코드와 각 플랫폼에 맞게 구현된 JVM입니다."
+        },
+        "source": "1장 p.9~13",
+        "key": "ch1-flow",
+        "easy": ".class를 공통 형식의 악보, 플랫폼별 JVM을 서로 다른 악기로 생각해 보세요. 악보는 같아도 실제 소리를 내는 장치는 환경마다 다릅니다.",
+        "steps": [
+          "Hello.java를 javac로 컴파일하면 JVM용 바이트 코드가 생깁니다.",
+          "Windows와 Linux는 각 환경용 JVM을 사용합니다.",
+          "호환되는 JVM과 필요한 라이브러리가 있으면 같은 바이트 코드를 실행할 수 있습니다."
+        ],
+        "examTip": "서술형에는 “플랫폼 중립적 바이트 코드 + 플랫폼별 JVM” 두 요소를 함께 쓰세요."
+      },
+      {
+        "id": "tools",
+        "title": "JDK·JRE와 개발 도구",
+        "summary": "개발 환경, 실행 환경, 가상 기계는 서로 다른 범위입니다.",
+        "table": {
+          "headers": [
+            "용어·도구",
+            "역할"
+          ],
+          "rows": [
+            [
+              "JVM",
+              "바이트 코드를 실행하는 가상 기계"
+            ],
+            [
+              "JRE",
+              "JVM과 실행에 필요한 라이브러리 등의 실행 환경"
+            ],
+            [
+              "JDK",
+              "실행 환경과 컴파일러 등의 개발 도구"
+            ],
+            [
+              "javac / java",
+              "소스 컴파일 / JVM을 통한 프로그램 실행"
+            ],
+            [
+              "javadoc / jar",
+              "API 문서 생성 / 클래스·자원 묶음 관리"
+            ],
+            [
+              "jdb / javap",
+              "디버깅 / 클래스 파일 정보·바이트 코드 확인"
+            ],
+            [
+              "jmod / jlink",
+              "모듈 관리 / 필요한 모듈로 실행 환경 구성"
+            ]
+          ]
+        },
+        "code": "javac Hello.java  // Hello.class 생성\njava Hello        // .class 확장자는 붙이지 않음",
+        "paragraphs": [
+          "이 구분은 강의의 Java 10 환경을 기준으로 합니다. IDE는 편집·컴파일·실행·디버깅을 통합한 도구이며 Eclipse가 대표 사례입니다. IDE 자체와 JDK는 같은 뜻이 아닙니다."
+        ],
+        "check": {
+          "q": "java와 javac 중 컴파일 명령은?",
+          "a": "javac입니다. java는 강의의 클래스 실행 방식에서 JVM을 작동해 프로그램을 실행합니다."
+        },
+        "source": "1장 p.14, 23~25",
+        "key": "ch1-tools",
+        "easy": "실행만 하는 사람과 프로그램을 만드는 사람에게 필요한 도구가 다릅니다. JRE는 실행 준비, JDK는 개발 도구까지 갖춘 범위로 이해하면 됩니다.",
+        "steps": [
+          "소스 파일을 클래스 파일로 만들라는 요청이면 javac입니다.",
+          "이미 만든 클래스를 실행하라는 요청이면 java입니다.",
+          "강의 방식에서 javac Hello.java와 java Hello의 확장자 차이를 확인합니다."
+        ],
+        "examTip": "JDK·JRE·JVM은 같은 말이 아닙니다. IDE를 설치했다는 사실만으로 JDK 역할을 설명했다고 보지 마세요."
+      },
+      {
+        "id": "files",
+        "title": "소스·클래스 파일과 main",
+        "summary": "파일 이름 규칙과 프로그램 시작점을 확인합니다.",
+        "paragraphs": [
+          "하나의 .java 파일에 여러 클래스를 선언할 수 있지만 public 최상위 클래스는 하나만 둘 수 있습니다. 파일 이름은 그 public 클래스 이름과 대소문자까지 같아야 합니다.",
+          "컴파일하면 선언된 클래스별로 .class 파일이 생성됩니다. 내부 클래스에는 A$B.class 같은 이름을 사용합니다. 강의의 응용프로그램 시작점은 public static void main(String[] args)입니다."
+        ],
+        "code": "// 파일 이름: Hello.java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}\nclass Helper { } // 컴파일하면 Helper.class도 생성",
+        "pitfall": "클래스를 선언했다고 인스턴스 객체가 자동으로 하나 생성되는 것은 아닙니다. 클래스 정의와 new에 의한 객체 생성을 구분하세요.",
+        "check": {
+          "q": "Hello.java에 Hello와 Helper가 있으면 클래스 파일은 하나일까요?",
+          "a": "아닙니다. 이 예에서는 Hello.class와 Helper.class가 각각 생성됩니다."
+        },
+        "source": "1장 p.36~38; 2장 p.3~5",
+        "key": "ch1-files",
+        "easy": "한 종이에 설계도 두 개를 그릴 수 있어도 실제 제품 두 개가 자동 생산되지는 않습니다. 소스 안의 클래스 선언과 실행 중 객체 생성도 이처럼 별개입니다.",
+        "steps": [
+          "public 최상위 클래스 이름을 찾습니다.",
+          "소스 파일 이름의 대소문자를 그 클래스에 맞춥니다.",
+          "함께 선언한 다른 클래스도 각각 클래스 파일을 만든다는 점을 확인합니다."
+        ],
+        "examTip": "main의 static은 시작할 때 인스턴스를 먼저 만들 필요가 없다는 뜻입니다. void는 반환값이 없다는 뜻입니다."
+      },
+      {
+        "id": "organization",
+        "title": "API·패키지·모듈·응용 종류",
+        "summary": "클래스를 활용하고 묶는 단위를 이해합니다.",
+        "table": {
+          "headers": [
+            "용어",
+            "의미"
+          ],
+          "rows": [
+            [
+              "API",
+              "입출력 등 자주 쓰는 기능을 미리 구현한 클래스 라이브러리"
+            ],
+            [
+              "패키지",
+              "서로 관련된 클래스를 계층적 이름으로 묶는 단위"
+            ],
+            [
+              "모듈",
+              "패키지와 자원을 묶는 단위. 필요한 구성만 선택하는 데 도움"
+            ],
+            [
+              "Java SE / ME / EE",
+              "강의에서 표준 / 자원 제약 기기 / 기업·서버 응용 플랫폼으로 구분"
+            ]
+          ]
+        },
+        "paragraphs": [
+          "다른 패키지에는 같은 단순 이름의 클래스가 있을 수 있습니다. java.util.Scanner처럼 패키지를 포함한 이름으로 구별하며 필요한 클래스를 import해 사용합니다.",
+          "모듈화는 Java 9부터 도입되었습니다. 필요한 모듈만 포함하면 작은 실행 환경을 구성할 수 있습니다. 데스크톱 응용은 사용자 PC에서, 서블릿은 웹 서버에서 실행됩니다. 여러 클래스와 자원은 JAR로 묶어 배포할 수 있습니다."
+        ],
+        "check": {
+          "q": "API, 패키지, 모듈은 모두 같은 뜻인가요?",
+          "a": "아닙니다. API는 제공되는 기능, 패키지와 모듈은 관련 클래스·자원을 조직하는 단위로 구분합니다."
+        },
+        "source": "1장 p.17~21, 33~38",
+        "key": "ch1-organization",
+        "easy": "파일을 폴더로 묶고 폴더를 배포 묶음으로 조직하듯이 클래스를 패키지로, 패키지와 자원을 모듈로 묶습니다. API는 그 안에서 사용할 수 있는 기능에 초점을 둔 말입니다.",
+        "steps": [
+          "java.util.Scanner를 java.util과 Scanner로 나눠 읽습니다.",
+          "패키지를 포함한 이름이 같은 단순 클래스 이름을 구별함을 확인합니다.",
+          "모듈은 패키지보다 큰 구성 단위로 연결합니다."
+        ],
+        "examTip": "패키지·모듈은 구성 단위이고 JVM·JRE·JDK는 실행 및 개발 환경의 구분입니다."
+      },
+      {
+        "id": "features",
+        "title": "객체 지향·GC·멀티스레드·JIT",
+        "summary": "언어의 장점과 실행상의 제약을 함께 봅니다.",
+        "bullets": [
+          "객체 지향: 캡슐화·상속·다형성을 지원해 재사용과 실세계 모델링을 돕습니다.",
+          "안전성: 엄격한 타입 검사, 배열 범위 검사, 직접적인 포인터 연산의 부재 등이 특징입니다.",
+          "GC: 더 이상 사용할 수 없는 객체의 메모리를 JVM이 자동으로 회수합니다. System.gc()는 수거 요청이며 즉시 실행을 보장하지 않습니다.",
+          "멀티스레드: 한 프로그램 안에서 여러 실행 흐름을 다룰 수 있습니다. 운영체제의 도움을 전혀 받지 않는다는 뜻은 아닙니다.",
+          "JIT: 실행 중 바이트 코드를 기계어로 컴파일하여 성능을 개선합니다."
+        ],
+        "pitfall": "GC 중 일시 정지가 발생할 수 있어 엄격한 실시간 응답에는 제약이 있습니다. 멀티스레드 지원과 응답 시간 보장은 별개의 이야기입니다.",
+        "check": {
+          "q": "JIT는 언제 바이트 코드를 기계어로 바꾸나요?",
+          "a": "프로그램 실행 중입니다. 소스를 처음 .class로 만드는 javac와 구분합니다."
+        },
+        "source": "1장 p.36~39; 4장 p.45",
+        "key": "ch1-features",
+        "easy": "메모리 청소를 자동화하면 개발자의 부담은 줄지만 청소 시간이 완전히 사라지는 것은 아닙니다. GC의 편리함과 일시 정지 가능성을 함께 이해하세요.",
+        "steps": [
+          "javac가 처음 바이트 코드를 만드는 시점을 떠올립니다.",
+          "JIT는 실행 중 자주 쓰는 코드 등을 기계어로 바꾸는 역할로 구분합니다.",
+          "GC는 도달 불가능한 객체의 공간 회수이며 즉시 완료 명령이 아님을 확인합니다."
+        ],
+        "examTip": "후기에서 GC와 WORA가 언급되었습니다. 둘을 각각 메모리 관리와 플랫폼 독립성의 근거로 구분하세요."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "자료형·연산·조건",
+    "intro": "타입과 계산 순서를 먼저 판단하면 형 변환·연산 결과 문제를 안정적으로 풀 수 있습니다.",
+    "minutes": 26,
+    "keywords": [
+      "기본 타입",
+      "형 변환",
+      "Scanner",
+      "조건문"
+    ],
+    "goals": [
+      "기본 타입과 참조 타입, 리터럴을 구분한다.",
+      "형 변환·증감·문자열 연결 결과를 계산한다.",
+      "입력과 if·switch의 실행 흐름을 설명한다."
+    ],
+    "sections": [
+      {
+        "id": "structure",
+        "title": "main·메소드·변수·식별자",
+        "summary": "메소드 호출, 매개변수, 반환값의 관계를 잡습니다.",
+        "code": "public class Hello {\n    static int sum(int n, int m) { return n + m; }\n    public static void main(String[] args) {\n        int result = sum(20, 10);\n        System.out.println(result); // 30\n    }\n}",
+        "paragraphs": [
+          "main의 public은 접근 허용, static은 객체 없이 호출 가능, void는 반환값 없음, String[] args는 실행 인자 배열을 뜻합니다. args라는 변수 이름 자체는 바꿀 수 있습니다. 메소드는 클래스 안에 작성하고 반환 타입·이름·매개변수 목록·본문으로 구성합니다.",
+          "지역 변수는 사용 전에 값을 대입해야 합니다. 식별자는 숫자로 시작할 수 없고 예약어·true·false·null을 사용할 수 없습니다. 대소문자를 구별하며 이름 안의 _와 $는 가능합니다. Java 9 이상에서 _ 하나만 이름으로 쓰는 것은 불가합니다."
+        ],
+        "bullets": [
+          "// 한 줄 주석, /* ... */ 여러 줄 주석. 선언·대입·메소드 호출 문장은 보통 ;로 끝납니다.",
+          "print는 줄바꿈 없이 출력, println은 출력 후 줄바꿈, printf는 형식을 지정합니다."
+        ],
+        "check": {
+          "q": "sum(20, 10)에서 n과 m은 무엇인가요?",
+          "a": "메소드의 매개변수입니다. 호출할 때 실제 인자 20과 10을 복사받으며 return으로 합을 돌려줍니다."
+        },
+        "source": "2장 p.3~7; 4장 p.33~34",
+        "key": "ch2-structure",
+        "easy": "메소드 호출은 작은 작업을 맡기고 결과를 받는 과정입니다. sum(20,10)은 20과 10을 매개변수에 전달하고 return 값 30을 호출한 위치로 돌려줍니다.",
+        "steps": [
+          "선언에서 반환 타입과 매개변수 타입을 찾습니다.",
+          "호출에서 인자를 왼쪽부터 대응시킵니다.",
+          "return 값이 어디에 대입되거나 사용되는지 확인합니다."
+        ],
+        "examTip": "지역 변수는 사용 전에 초기화해야 합니다. 필드·배열 원소의 자동 기본값과 구분하세요."
+      },
+      {
+        "id": "types",
+        "title": "기본 타입 8개와 참조 타입",
+        "summary": "String과 배열은 기본 타입이 아닙니다.",
+        "table": {
+          "headers": [
+            "타입",
+            "크기",
+            "핵심 특징"
+          ],
+          "rows": [
+            [
+              "byte",
+              "1바이트",
+              "-128~127"
+            ],
+            [
+              "short",
+              "2바이트",
+              "-32768~32767"
+            ],
+            [
+              "int",
+              "4바이트",
+              "-2^31~2^31-1"
+            ],
+            [
+              "long",
+              "8바이트",
+              "-2^63~2^63-1"
+            ],
+            [
+              "char",
+              "2바이트",
+              "0~65535, UTF-16 코드 단위"
+            ],
+            [
+              "float",
+              "4바이트",
+              "실수, 리터럴에 f"
+            ],
+            [
+              "double",
+              "8바이트",
+              "기본 실수 리터럴 타입"
+            ],
+            [
+              "boolean",
+              "저장 크기 단정 금지",
+              "true 또는 false"
+            ]
+          ]
+        },
+        "paragraphs": [
+          "기본 타입 변수는 값 자체를 저장하고 참조 타입 변수는 객체를 가리키는 참조 값을 저장합니다. 클래스·인터페이스·배열이 참조 타입이며 String도 클래스입니다. 수치 기본 타입의 크기는 CPU나 운영체제에 따라 바뀌지 않습니다. 필드와 배열 원소는 숫자 0, char 코드값 0, boolean false, 참조 null로 기본 초기화됩니다. 지역 변수는 사용 전 직접 초기화해야 합니다."
+        ],
+        "pitfall": "강의의 boolean “1비트” 표기를 실제 저장 크기 보장으로 외우지 마세요. 두 논리값을 가지지만 실제 저장 크기를 언어 차원에서 1비트로 보장하지 않습니다.",
+        "check": {
+          "q": "int n = null;이 가능한가요?",
+          "a": "불가능합니다. null은 참조에 사용할 수 있으며 int 같은 기본 타입에 대입할 수 없습니다."
+        },
+        "source": "2장 p.8~16",
+        "key": "ch2-types",
+        "easy": "기본 타입 변수는 값이 든 칸, 참조 변수는 객체로 연결되는 표시라고 생각하세요. int n=3과 int[] a=new int[3]은 변수에 담기는 종류부터 다릅니다.",
+        "steps": [
+          "숫자·문자·논리인지, 객체·배열 참조인지 먼저 분류합니다.",
+          "String은 클래스이므로 참조 타입으로 둡니다.",
+          "null은 참조에 사용하고 기본 타입에는 대입하지 않습니다."
+        ],
+        "examTip": "char의 2바이트와 float/double 크기, 기본 타입 8개를 먼저 외우세요. boolean의 실제 저장 공간을 1비트로 단정하지 마세요."
+      },
+      {
+        "id": "literals",
+        "title": "리터럴·상수·var",
+        "summary": "값 자체, 재대입 제한, 컴파일 시 타입 추론을 구분합니다.",
+        "code": "int a = 015;        // 팔진수: 십진수 13\nint b = 0x15;       // 십육진수: 십진수 21\nint c = 0b0101;     // 이진수: 십진수 5\nlong n = 24L;\nfloat f = 3.14f;\nchar ch = 'A';     // \"A\"는 String\nfinal double PI = 3.14;\nvar price = 200;    // int로 결정됨",
+        "paragraphs": [
+          "리터럴은 코드에 직접 쓴 값입니다. 정수는 기본적으로 int, 실수는 double로 취급합니다. long 리터럴에는 L, float 리터럴에는 f를 붙입니다. 1234E-4는 0.1234입니다.",
+          "final 변수는 한 번 대입한 뒤 재대입할 수 없습니다. var는 Java 10부터 지역 변수의 타입을 초기값으로 추론합니다. 동적 타입이 아니므로 var x=1; 뒤에 x=\"A\";는 오류입니다. var x;와 var x=null;도 타입을 결정할 수 없습니다."
+        ],
+        "table": {
+          "headers": [
+            "특수문자 표기",
+            "뜻"
+          ],
+          "rows": [
+            [
+              "\\n / \\t",
+              "줄바꿈 / 탭"
+            ],
+            [
+              "\\b / \\f / \\r",
+              "백스페이스 / 폼 피드 / 캐리지 리턴"
+            ],
+            [
+              "\\\" / \\' / \\\\",
+              "큰따옴표 / 작은따옴표 / 백슬래시"
+            ]
+          ]
+        },
+        "check": {
+          "q": "float f = 3.14;가 왜 오류인가요?",
+          "a": "3.14는 double 리터럴이라 float으로 자동 축소 변환되지 않습니다. 3.14f처럼 씁니다."
+        },
+        "source": "2장 p.12~19",
+        "key": "ch2-literals",
+        "easy": "3.14라는 표기 자체에는 이미 double이라는 타입이 있습니다. 왼쪽을 float으로 쓴다고 오른쪽 리터럴의 타입까지 자동으로 바뀌지는 않습니다.",
+        "steps": [
+          "따옴표가 작은따옴표인지 큰따옴표인지 확인합니다.",
+          "실수 리터럴의 f, 정수 리터럴의 L과 진법 접두사를 확인합니다.",
+          "var는 초기값으로 타입을 한 번 결정하며 이후 다른 타입으로 자유롭게 바뀌지 않습니다."
+        ],
+        "examTip": "리터럴은 값의 표기이고 final은 재대입 제한입니다. 서로 다른 개념입니다."
+      },
+      {
+        "id": "conversion",
+        "title": "자동·강제 형 변환과 나눗셈",
+        "summary": "대입받는 타입보다 연산 당시 타입을 먼저 봅니다.",
+        "paragraphs": [
+          "확대 변환의 대표 흐름은 byte → short → int → long → float → double이고 char → int도 가능합니다. boolean은 숫자 타입으로 변환할 수 없습니다. 정수에서 실수로 확대해도 정밀도가 손실될 수 있습니다.",
+          "강제 변환은 (타입)으로 지정합니다. 실수→정수는 소수 부분을 0 방향으로 버립니다. 큰 정수→작은 정수는 값이 달라질 수 있습니다. byte·short·char의 일반 산술 결과는 int로 승격될 수 있습니다."
+        ],
+        "code": "double a = 10 / 4;          // 2.0\ndouble b = (double)10 / 4;  // 2.5\ndouble c = (double)(10/4);  // 2.0\nint d = (int)(2.9 + 1.8);   // 4\nbyte e = (byte)300;         // 44",
+        "pitfall": "정수 나눗셈이 끝난 뒤 double로 바꿔도 버려진 소수 부분은 돌아오지 않습니다. “연산 당시 타입 → 결과 → 대입 변환” 순서로 판단하세요.",
+        "check": {
+          "q": "(int)2.9 + (int)1.8의 결과는?",
+          "a": "3입니다. 각각 2와 1로 변환한 뒤 더합니다. 전체 합을 변환한 (int)(2.9+1.8)은 4입니다."
+        },
+        "source": "2장 p.21~23",
+        "key": "ch2-conversion",
+        "easy": "정수 나눗셈으로 소수 부분을 버린 뒤 큰 그릇에 옮겨도 버린 부분은 돌아오지 않습니다. double에 대입한 결과가 기대와 다른 이유입니다.",
+        "steps": [
+          "각 피연산자의 타입을 먼저 적습니다.",
+          "괄호와 캐스팅 위치를 따라 실제 연산 결과를 계산합니다.",
+          "마지막으로 대입받는 타입으로 변환합니다."
+        ],
+        "examTip": "double a=7/2는 3.0, 7/2.0은 3.5입니다. “나눈 뒤 변환”과 “변환한 뒤 나눔”을 구분하세요."
+      },
+      {
+        "id": "operators",
+        "title": "산술·증감·문자열·논리 연산",
+        "summary": "작은 식도 순서대로 추적하면 실수를 줄일 수 있습니다.",
+        "code": "int x = 3;\nint a = x++; // a=3, x=4\nint b = ++x; // b=5, x=5\nSystem.out.print(\"값=\" + 1 + 2);   // 값=12\nSystem.out.print(\"값=\" + (1 + 2)); // 값=3",
+        "bullets": [
+          "/는 나눗셈, %는 나머지입니다. 양수 69에서 69/10=6, 69%10=9입니다.",
+          "++x는 먼저 증가한 값을, x++는 기존 값을 사용합니다. +=, -=, *=, /=, %=는 계산 결과를 다시 대입합니다.",
+          "+는 왼쪽부터 계산하며 문자열이 참여하면 연결합니다. 곱셈은 덧셈보다 먼저이고 괄호로 순서를 바꿀 수 있습니다.",
+          "비교 결과는 boolean입니다. =는 대입이고 ==는 비교입니다. !는 부정, ^는 논리값이 다르면 true입니다.",
+          "&&는 앞이 false, ||는 앞이 true이면 뒤를 평가하지 않습니다. boolean의 &와 |는 양쪽을 평가합니다.",
+          "조건 ? A : B는 조건이 true면 A, false면 B를 선택합니다."
+        ],
+        "pitfall": "byte b=1;에서 b=b+1;은 int 결과 때문에 오류지만 b+=1;은 복합 대입의 형 변환 규칙으로 가능합니다.",
+        "check": {
+          "q": "n=0일 때 n!=0 && 10/n>1은 예외인가요?",
+          "a": "아닙니다. 왼쪽이 false여서 오른쪽 나눗셈을 평가하지 않고 false가 됩니다."
+        },
+        "source": "2장 p.29~38",
+        "key": "ch2-operators",
+        "easy": "증감식은 식이 제공하는 값과 변수에 최종 저장되는 값을 분리해 적으면 쉽습니다. x++를 읽을 때 기존 값을 사용한 뒤 x를 1 증가시킵니다.",
+        "steps": [
+          "변수의 현재 값과 식이 사용한 값을 두 칸에 따로 적습니다.",
+          "문자열 연결은 +를 왼쪽부터 따라가며 문자열이 등장한 위치를 확인합니다.",
+          "&&와 ||는 오른쪽을 실제 평가했는지 먼저 판정합니다."
+        ],
+        "examTip": "출력 문제는 화면에 찍힌 내용만 답합니다. 계산 중간 값이나 자동으로 생기지 않은 공백·줄바꿈을 넣지 마세요."
+      },
+      {
+        "id": "input",
+        "title": "Scanner와 토큰·줄 입력",
+        "summary": "next()와 nextLine()은 읽는 단위가 다릅니다.",
+        "code": "import java.util.Scanner;\n// 메소드 안\nScanner sc = new Scanner(System.in);\nint age = sc.nextInt();\nsc.nextLine(); // 숫자 뒤 남은 줄 소비\nString name = sc.nextLine();",
+        "table": {
+          "headers": [
+            "메소드",
+            "역할"
+          ],
+          "rows": [
+            [
+              "next()",
+              "공백으로 구분한 다음 토큰"
+            ],
+            [
+              "nextInt() / nextDouble()",
+              "다음 토큰을 정수 / 실수로 읽기"
+            ],
+            [
+              "nextBoolean()",
+              "다음 토큰을 논리값으로 읽기"
+            ],
+            [
+              "nextLine()",
+              "현재 위치부터 줄 끝까지 읽고 줄 구분자는 제외"
+            ],
+            [
+              "hasNext()",
+              "토큰 유무 확인. 입력을 기다릴 수도 있으며 소비하지 않음"
+            ],
+            [
+              "close()",
+              "Scanner 사용 종료"
+            ]
+          ]
+        },
+        "paragraphs": [
+          "System.in은 바이트를 읽는 표준 입력 스트림입니다. Scanner가 이를 원하는 타입으로 해석합니다. nextInt() 뒤에는 줄 구분자가 남을 수 있어 다음 nextLine()이 빈 문자열을 반환할 수 있습니다."
+        ],
+        "check": {
+          "q": "이름에 공백이 포함될 때 next()로 전체를 읽을 수 있나요?",
+          "a": "일반적인 기본 구분자 설정에서는 안 됩니다. 한 줄 전체를 읽으려면 nextLine()을 사용합니다."
+        },
+        "source": "2장 p.24~28",
+        "key": "ch2-input",
+        "easy": "nextInt는 숫자 토큰을 집어가고 nextLine은 현재 위치에서 줄 끝까지 읽습니다. 숫자만 가져간 뒤 줄 구분자가 남아 있으면 바로 다음 줄 읽기는 빈 내용일 수 있습니다.",
+        "steps": [
+          "입력을 토큰과 줄 구분자로 나누어 표시합니다.",
+          "호출한 메소드가 토큰을 읽는지 줄을 읽는지 확인합니다.",
+          "숫자 뒤 줄 전체를 받을 때 필요하면 nextLine으로 남은 줄을 한 번 소비합니다."
+        ],
+        "examTip": "숫자가 아닌 토큰을 nextInt로 읽는 예외는 InputMismatchException입니다."
+      },
+      {
+        "id": "conditions",
+        "title": "if·switch와 비트 연산",
+        "summary": "조건식의 타입과 분기 후 실행 흐름이 중요합니다.",
+        "paragraphs": [
+          "if의 조건식은 boolean입니다. 범위 검사 age>=20 && age<30은 가능하지만 20<=age<30은 오류입니다. if-else if는 처음 참인 분기를 실행합니다. 중괄호가 없으면 else는 짝 없는 가장 가까운 if에 연결됩니다.",
+          "강의의 case: 형식 switch는 일치 case부터 시작하고 break가 없으면 다음 case도 실행합니다. 맞는 case가 없으면 default로 갑니다. case에는 타입에 맞는 컴파일 시 상수가 필요하고 실수·일반 변수·범위 조건은 쓸 수 없습니다."
+        ],
+        "code": "int n = 2;\nswitch (n) {\n    case 2: System.out.print(\"B\");\n    case 3: System.out.print(\"C\"); break;\n    default: System.out.print(\"D\");\n} // BC",
+        "table": {
+          "headers": [
+            "비트 연산",
+            "역할"
+          ],
+          "rows": [
+            [
+              "& / | / ^ / ~",
+              "각 비트의 AND / OR / XOR / 반전"
+            ],
+            [
+              "<<",
+              "왼쪽 이동, 오른쪽은 0으로 채움"
+            ],
+            [
+              ">>",
+              "오른쪽 이동, 왼쪽은 부호 비트로 채움"
+            ],
+            [
+              ">>>",
+              "오른쪽 이동, 왼쪽은 0으로 채움"
+            ]
+          ]
+        },
+        "pitfall": "비트 검사는 (flag & 8)==0처럼 괄호를 넣으세요. flag & 8==0은 우선순위 때문에 의도한 정수 비교가 되지 않습니다.",
+        "check": {
+          "q": "-8 >> 2는 무엇인가요?",
+          "a": "-2입니다. >>는 왼쪽을 부호 비트로 채웁니다. >>>와 구분하세요."
+        },
+        "source": "2장 p.39~52",
+        "key": "ch2-conditions",
+        "easy": "if-else if는 여러 문을 동시에 여는 것이 아니라 처음 통과한 한 갈래를 고릅니다. switch는 시작 case를 고른 뒤 break를 만날 때까지 아래로 실행합니다.",
+        "steps": [
+          "if의 조건식이 boolean인지 확인합니다.",
+          "if-else if는 위에서부터 처음 true인 분기를 고릅니다.",
+          "case: switch는 일치 위치와 break 위치를 따로 표시합니다."
+        ],
+        "examTip": "비트 연산은 이진수로 한 자리씩 계산합니다. 조건식의 &&/||와 정수의 &/|를 섞어 외우지 마세요."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "반복·배열·예외",
+    "intro": "반복의 흐름을 따라가고, 배열과 참조를 연결한 뒤 실행 중 예외를 구분해 봅니다.",
+    "minutes": 24,
+    "keywords": [
+      "반복문",
+      "배열·length",
+      "참조 공유",
+      "try·catch"
+    ],
+    "goals": [
+      "반복문과 break·continue의 흐름을 추적한다.",
+      "배열 선언·생성·공유·반환을 구분한다.",
+      "예외 이름과 처리 흐름을 설명한다."
+    ],
+    "sections": [
+      {
+        "id": "loops",
+        "title": "for·while·do-while",
+        "summary": "조건 검사가 실행 전인지 실행 후인지 구분합니다.",
+        "table": {
+          "headers": [
+            "반복문",
+            "실행 순서",
+            "최소 본문 실행"
+          ],
+          "rows": [
+            [
+              "for",
+              "초기식 → 조건 → 본문 → 반복 후 작업 → 조건…",
+              "0회"
+            ],
+            [
+              "while",
+              "조건 → 본문 → 조건…",
+              "0회"
+            ],
+            [
+              "do-while",
+              "본문 → 조건 → 본문…",
+              "1회"
+            ]
+          ]
+        },
+        "code": "int sum = 0;\nfor (int i=1; i<=3; i++) sum += i; // 6\n\nint n = 0;\ndo { n++; } while (false); // n=1",
+        "bullets": [
+          "for에서 선언한 int i는 해당 for 범위 밖에서 사용할 수 없습니다.",
+          "for(;;)와 while(true)는 무한 반복 형태입니다.",
+          "중첩 반복은 안쪽 반복문을 바깥 반복마다 다시 실행합니다. 독립적인 3회×4회는 본문 12회입니다.",
+          "do-while은 끝에 세미콜론이 필요합니다."
+        ],
+        "check": {
+          "q": "while의 초기 조건이 false이면 본문을 한 번 실행하나요?",
+          "a": "아닙니다. while은 본문 전에 조건을 검사하므로 0회 실행할 수 있습니다."
+        },
+        "source": "3장 p.3~10",
+        "key": "ch3-loops",
+        "easy": "for는 초기화 한 번 뒤 “조건 → 본문 → 증감”을 반복하는 장치입니다. 마지막 본문 실행 뒤에도 증감과 조건 검사가 한 번 더 있을 수 있습니다.",
+        "steps": [
+          "조건을 만족하는 i 값을 순서대로 적습니다.",
+          "각 i에서 본문이 몇 번 실행되는지 셉니다.",
+          "중첩 반복이면 바깥 한 회마다 안쪽 반복을 처음부터 다시 셉니다."
+        ],
+        "examTip": "별 찍기는 매번 출력한 문자열을 이어 쓰세요. println이 없으면 줄바꿈도 없습니다."
+      },
+      {
+        "id": "control",
+        "title": "break·continue·return",
+        "summary": "어디를 건너뛰고 어디를 끝내는지 구분합니다.",
+        "bullets": [
+          "break는 가장 가까운 반복문 또는 switch 하나를 끝냅니다. 안쪽 반복문의 break가 바깥 반복문까지 끝내지는 않습니다.",
+          "continue는 현재 반복의 남은 본문을 건너뜁니다. for에서는 반복 후 작업을 거쳐 조건 검사로 이동합니다. while에서는 조건 검사로 이동합니다.",
+          "return은 현재 메소드 실행을 끝냅니다. 반환 타입이 있으면 적절한 값을 돌려줍니다."
+        ],
+        "code": "int sum = 0;\nfor (int i=1; i<=5; i++) {\n    if (i==2) continue;\n    if (i==5) break;\n    sum += i;\n} // 1+3+4=8",
+        "pitfall": "while의 증가 코드 앞에서 continue하면 증가를 건너뛰어 무한 반복이 될 수 있습니다. 조건·본문·변수 변경을 한 줄씩 추적하세요.",
+        "check": {
+          "q": "위 코드에서 5도 합계에 들어가나요?",
+          "a": "아닙니다. sum에 더하기 전에 break가 실행되어 반복을 끝냅니다."
+        },
+        "source": "3장 p.11~14",
+        "key": "ch3-control",
+        "easy": "break는 현재 반복을 나가고 continue는 이번 회차의 남은 일만 건너뜁니다. return은 반복문보다 더 큰 메소드 실행 자체를 끝냅니다.",
+        "steps": [
+          "가장 가까운 반복문이나 switch의 범위를 표시합니다.",
+          "break이면 그 구조 뒤로 이동합니다.",
+          "continue이면 for의 증감식 또는 while의 조건 검사로 이동합니다."
+        ],
+        "examTip": "중첩 반복의 안쪽 break 하나가 바깥 반복까지 멈춘다고 생각하지 마세요."
+      },
+      {
+        "id": "arrays",
+        "title": "배열 선언·생성·인덱스",
+        "summary": "참조 변수 선언과 배열 공간 생성을 분리해서 봅니다.",
+        "code": "int[] a;          // 지역 참조 변수 선언\na = new int[3];   // 배열 생성, 원소 0으로 초기화\nint[] b = {4, 5, 6};\nSystem.out.println(a.length); // 3\n// a[3]은 범위 초과: 유효 인덱스는 0,1,2",
+        "paragraphs": [
+          "배열은 같은 타입의 원소를 인덱스로 다루는 객체입니다. 배열 변수는 배열 객체의 참조를 저장합니다. int a[3];은 자바의 올바른 선언이 아닙니다.",
+          "배열 인덱스는 0~length-1입니다. 길이는 a.length 필드이고 문자열 길이 s.length()와 구분합니다. 생성한 배열의 길이는 바뀌지 않지만 참조 변수에 다른 배열을 대입할 수 있습니다."
+        ],
+        "pitfall": "초기화하지 않은 지역 배열 변수 사용은 컴파일 오류입니다. null인 배열로 원소에 접근하면 NullPointerException, 잘못된 인덱스는 ArrayIndexOutOfBoundsException입니다.",
+        "check": {
+          "q": "new int[5]의 마지막 원소는 a[5]인가요?",
+          "a": "아닙니다. a[4]입니다. length는 원소 개수이며 마지막 인덱스가 아닙니다."
+        },
+        "source": "3장 p.15~23",
+        "key": "ch3-arrays",
+        "easy": "배열 선언은 배열로 가는 참조를 담을 변수를 준비하는 일이고, new는 실제 원소 공간을 만드는 일입니다. 길이 3이면 번호는 0,1,2입니다.",
+        "steps": [
+          "변수만 선언했는지 new로 생성했는지 확인합니다.",
+          "length로 원소 수를 보고 마지막 인덱스는 length-1로 계산합니다.",
+          "length는 필드라 괄호 없이 a.length로 씁니다."
+        ],
+        "examTip": "new int[0]도 가능합니다. 다만 접근 가능한 원소가 없어 a[0]은 범위 예외입니다."
+      },
+      {
+        "id": "sharing",
+        "title": "참조 공유·for-each",
+        "summary": "참조 복사와 원소 복사를 혼동하지 않습니다.",
+        "code": "int[] a = {1, 2};\nint[] b = a;\nb[0] = 9; // a[0]도 9\nfor (int v : a) v = 0; // a는 {9,2} 그대로",
+        "paragraphs": [
+          "b=a는 배열 전체를 복사하지 않고 참조 값을 복사합니다. 두 변수가 같은 배열을 공유하므로 b로 수정한 원소를 a에서도 읽을 수 있습니다.",
+          "for-each는 배열 원소를 순서대로 접근합니다. 기본 타입의 반복 변수 v는 원소 값을 복사받으므로 v에 다시 대입해도 배열 원소는 바뀌지 않습니다. 원소 자체를 수정하려면 인덱스로 접근합니다."
+        ],
+        "check": {
+          "q": "for(int v:a) v=0;으로 int 배열을 모두 0으로 만들 수 있나요?",
+          "a": "아닙니다. 반복 변수만 바뀝니다. for(int i=0;i<a.length;i++) a[i]=0;처럼 원소에 대입해야 합니다."
+        },
+        "source": "3장 p.21, 26~27",
+        "key": "ch3-sharing",
+        "easy": "a와 b가 한 배열을 가리키면 어느 쪽으로 수정해도 같은 원소가 바뀝니다. b를 다른 배열로 돌리는 재대입은 a가 가리키는 대상을 바꾸지 않습니다.",
+        "steps": [
+          "new가 나온 곳마다 별개의 배열 상자를 그립니다.",
+          "a와 b의 연결을 표시하고 원소 대입은 상자 안에 반영합니다.",
+          "b=new ... 같은 참조 대입은 b의 연결만 옮깁니다."
+        ],
+        "examTip": "배열 복사와 참조 복사를 구분하세요. b=a는 모든 원소를 새 배열에 복제하는 명령이 아닙니다."
+      },
+      {
+        "id": "dimensions",
+        "title": "2차원 배열·합계·평균·최대값",
+        "summary": "행 길이, 계산 타입, 초기값을 확인합니다.",
+        "code": "int[][] m = {{1,2},{3,4,5}};\n// m.length=2, m[0].length=2, m[1].length=3\nint sum=0, count=0;\nfor (int[] row : m) {\n    for (int v : row) { sum += v; count++; }\n}\ndouble avg = (double)sum / count; // 3.0",
+        "bullets": [
+          "2차원 배열은 배열의 배열입니다. 바깥 length는 행 개수, m[i].length는 i번째 행 길이입니다.",
+          "행마다 길이가 다를 수 있습니다. 전체 원소 개수는 각 행 길이의 합으로 구합니다.",
+          "평균은 정수 나눗셈을 피하고, 개수가 0인 경우를 따로 처리합니다. 종료 입력 0을 데이터에 포함하지 않는 예제도 있습니다.",
+          "비어 있지 않은 일반 배열의 최대값은 첫 원소 등으로 초기화합니다. max=0은 양수 입력 전제에 맞춘 값입니다."
+        ],
+        "check": {
+          "q": "음수만 있는 배열에서 max=0으로 시작하면 왜 문제인가요?",
+          "a": "실제 원소보다 큰 0이 남아 배열에 없는 값을 최대값으로 잘못 판단할 수 있습니다."
+        },
+        "source": "3장 p.6, 22~30",
+        "key": "ch3-dimensions",
+        "easy": "2차원 배열은 행 배열을 가리키는 바깥 배열로 이해하면 됩니다. 행마다 길이가 다를 수 있어 열 개수를 무조건 a[0].length로 통일하면 안 됩니다.",
+        "steps": [
+          "a.length로 행 수를 확인합니다.",
+          "접근하려는 행이 생성되어 null이 아닌지 확인합니다.",
+          "그 행의 a[i].length 안에 열 인덱스가 있는지 확인합니다."
+        ],
+        "examTip": "행이 null이면 NullPointerException, 생성된 행의 범위를 넘으면 ArrayIndexOutOfBoundsException입니다."
+      },
+      {
+        "id": "return",
+        "title": "배열 반환과 수명",
+        "summary": "메소드가 끝나도 반환된 배열을 계속 참조할 수 있습니다.",
+        "code": "static int[] makeArray() {\n    int[] temp = {0,1,2,3};\n    return temp;\n}\n// 호출하는 메소드 안\nint[] a = makeArray();",
+        "paragraphs": [
+          "반환 타입은 int[]처럼 쓰고 int[4]처럼 크기를 넣지 않습니다. 반환하는 것은 배열 참조 값이지 원소 전체의 복사가 아닙니다.",
+          "지역 변수 temp는 메소드 실행이 끝나면 범위를 벗어나지만, 반환받은 a가 배열을 참조하므로 배열 객체를 계속 사용할 수 있습니다. 배열은 length가 있어 메소드에 크기를 반드시 별도 전달할 필요도 없습니다."
+        ],
+        "check": {
+          "q": "makeArray()가 끝나면 위의 배열도 즉시 없어지나요?",
+          "a": "아닙니다. 호출자가 참조를 받아 배열에 도달할 수 있으므로 계속 사용할 수 있습니다."
+        },
+        "source": "3장 p.24, 31~33",
+        "key": "ch3-return",
+        "easy": "메소드가 배열을 반환할 때 배열 전체를 호출자에게 통째로 복사하는 것은 아닙니다. 반환된 참조 값으로 이미 만든 배열에 접근합니다.",
+        "steps": [
+          "return의 타입이 int[]인지 확인합니다.",
+          "메소드 안에서 new로 생성된 배열과 반환 참조를 연결합니다.",
+          "호출자가 받은 변수로 그 배열의 원소를 사용할 수 있는지 봅니다."
+        ],
+        "examTip": "지역 참조 변수의 범위가 끝나도 호출자가 배열을 참조하면 배열 객체가 바로 사라지지 않습니다."
+      },
+      {
+        "id": "exceptions",
+        "title": "예외 종류와 try·catch·finally",
+        "summary": "컴파일 오류와 실행 중 예외를 구분합니다.",
+        "table": {
+          "headers": [
+            "예외",
+            "대표 상황"
+          ],
+          "rows": [
+            [
+              "ArithmeticException",
+              "정수 / 또는 %의 오른쪽 값이 0"
+            ],
+            [
+              "ArrayIndexOutOfBoundsException",
+              "배열 인덱스 범위 초과"
+            ],
+            [
+              "NullPointerException",
+              "null로 인스턴스 멤버·배열에 접근"
+            ],
+            [
+              "InputMismatchException",
+              "nextInt()에 정수로 읽을 수 없는 토큰"
+            ],
+            [
+              "ClassCastException",
+              "실제 객체에 맞지 않는 참조 타입 캐스팅"
+            ],
+            [
+              "NumberFormatException",
+              "숫자 형식이 아닌 문자열의 숫자 변환"
+            ],
+            [
+              "IllegalArgumentException / IOException",
+              "부적절한 인자 / 입출력 실패"
+            ]
+          ]
+        },
+        "code": "int z=0;\ntry {\n    System.out.print(\"A\");\n    int n=10/z;\n    System.out.print(\"B\");\n} catch (ArithmeticException e) {\n    System.out.print(\"C\");\n} finally { System.out.print(\"D\"); } // ACD",
+        "paragraphs": [
+          "예외가 발생하면 try의 남은 코드를 건너뛰고 처리 가능한 catch로 이동합니다. 맞는 catch가 없으면 바깥으로 전파됩니다. 정상 실행이면 catch를 건너뜁니다. finally는 일반적인 정상·예외·return 흐름에서 정리 코드를 실행하며 생략할 수 있습니다.",
+          "nextInt() 실패 후에는 잘못된 토큰을 next() 등으로 소비해야 같은 토큰 때문에 반복 실패하지 않습니다. OutOfMemoryError는 표에 함께 나오지만 Exception이 아닌 Error입니다."
+        ],
+        "pitfall": "실수의 1.0/0.0은 Infinity이고 정수의 0 나눗셈과 다릅니다. finally도 JVM 강제 종료 같은 상황까지 실행을 보장하지는 않습니다.",
+        "check": {
+          "q": "try의 A 출력 뒤 예외가 발생하면 B도 출력하나요?",
+          "a": "아닙니다. try의 남은 부분을 건너뛰므로 예제에서는 catch C와 finally D가 이어져 ACD입니다."
+        },
+        "source": "3장 p.34~41",
+        "key": "ch3-exceptions",
+        "easy": "예외 이름은 “무엇을 하다가 실패했는가”로 연결하세요. 없는 객체 접근은 NullPointer, 잘못된 배열 번호는 ArrayIndexOutOfBounds, 정수가 아닌 입력 토큰은 InputMismatch입니다.",
+        "steps": [
+          "먼저 컴파일 가능한 코드인지 판단합니다.",
+          "실행 중 처음 예외가 발생하는 문장까지 추적합니다.",
+          "try의 나머지를 건너뛰고 맞는 catch와 finally의 출력을 연결합니다."
+        ],
+        "examTip": "후기의 예외 연결 문제를 대비해 상황 → 클래스 이름을 양방향으로 연습하세요. null 대입 자체는 예외가 아닙니다."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "클래스와 객체",
+    "intro": "클래스·객체·참조를 분리해서 이해하면 생성자와 static, 인자 전달이 한 흐름으로 연결됩니다.",
+    "minutes": 28,
+    "keywords": [
+      "생성자",
+      "this",
+      "참조 전달",
+      "static·final"
+    ],
+    "goals": [
+      "클래스와 인스턴스, 필드와 메소드를 구분한다.",
+      "생성자·this·객체 배열과 참조 전달을 설명한다.",
+      "접근 지정자·static·final·GC를 비교한다."
+    ],
+    "sections": [
+      {
+        "id": "objects",
+        "title": "객체 지향과 클래스·객체",
+        "summary": "설계도와 실행 중 생성된 실체는 다른 개념입니다.",
+        "table": {
+          "headers": [
+            "개념",
+            "의미"
+          ],
+          "rows": [
+            [
+              "클래스",
+              "객체의 상태와 동작을 선언한 설계도"
+            ],
+            [
+              "객체·인스턴스",
+              "클래스를 바탕으로 실행 중 생성된 구체적 실체"
+            ],
+            [
+              "필드 / 메소드",
+              "상태를 저장 / 동작을 수행"
+            ],
+            [
+              "캡슐화",
+              "데이터와 동작을 묶고 접근을 제어해 내부를 보호"
+            ],
+            [
+              "상속 / 다형성",
+              "기존 특성 재사용·확장 / 같은 동작을 다양한 구현으로 처리"
+            ]
+          ]
+        },
+        "code": "class Circle {\n    int radius;\n    double area() { return 3.14*radius*radius; }\n}\n// 메소드 안\nCircle c;         // 참조 변수만 선언\nc = new Circle(); // 객체 생성\nc.radius = 2;\ndouble a = c.area();",
+        "paragraphs": [
+          "절차 지향은 작업 순서와 함수 중심이고 객체 지향은 객체와 상호작용 중심입니다. 재사용·부분 수정·실세계 모델링이 쉬워 생산성을 높이는 것이 목적입니다. 같은 클래스로 만든 객체도 서로 다른 필드 값을 가질 수 있습니다."
+        ],
+        "check": {
+          "q": "클래스는 메모리 공간을 갖지 않는다는 표현을 어떻게 이해할까요?",
+          "a": "클래스 정의 자체가 인스턴스마다의 필드 공간은 아니라는 뜻으로 이해해야 합니다. 클래스 관련 정보와 static 데이터도 메모리를 사용하므로 클래스가 메모리를 전혀 쓰지 않는다는 절대 명제로 외우면 안 됩니다."
+        },
+        "source": "4장 p.3~16",
+        "key": "ch4-objects",
+        "easy": "클래스는 공통 설계이고 객체는 각자 상태를 가진 실체입니다. 같은 Circle 설계로 반지름 2와 반지름 5인 서로 다른 객체를 만들 수 있습니다.",
+        "steps": [
+          "클래스 선언에서 필드와 메소드를 나눕니다.",
+          "new가 실제 몇 번 실행되는지 셉니다.",
+          "참조 변수 개수와 생성된 객체 개수를 따로 셉니다."
+        ],
+        "examTip": "“클래스는 메모리가 없다”는 단순 표현은 인스턴스 필드 공간과 설계 정의를 구분하는 취지입니다. 클래스 정보·static도 메모리를 사용합니다."
+      },
+      {
+        "id": "constructors",
+        "title": "생성자와 기본 생성자",
+        "summary": "이름, 반환 타입, 자동 제공 조건이 핵심입니다.",
+        "paragraphs": [
+          "생성자는 객체 생성 과정에서 초기화를 담당합니다. 클래스와 이름이 같고 반환 타입을 쓰지 않습니다. void도 쓰지 않습니다. 매개변수 목록을 달리해 여러 생성자를 둘 수 있습니다.",
+          "생성자를 하나도 선언하지 않았을 때 컴파일러가 기본 생성자를 제공합니다. 생성자를 하나라도 직접 선언하면 인자 없는 생성자는 자동 제공되지 않습니다."
+        ],
+        "code": "class Book {\n    String title;\n    Book(String title) { this.title = title; }\n}\n// new Book();       // 컴파일 오류\n// new Book(\"Java\"); // 가능",
+        "pitfall": "void Book() {}는 생성자가 아니라 일반 메소드입니다. 이 선언 자체가 반드시 문법 오류인 것은 아닙니다. “인자 없는 생성자”와 “컴파일러가 자동 제공하는 기본 생성자”도 구분하세요.",
+        "check": {
+          "q": "Book(String)을 선언하면 Book()도 자동으로 생기나요?",
+          "a": "아닙니다. 생성자를 하나라도 직접 선언했으므로 필요한 인자 없는 생성자도 직접 선언해야 합니다."
+        },
+        "source": "4장 p.17~23",
+        "key": "ch4-constructors",
+        "easy": "생성자는 new로 만든 객체의 시작 상태를 정합니다. 이름만 비슷한 일반 메소드와 구분할 때는 반환 타입이 있는지부터 보세요.",
+        "steps": [
+          "클래스 이름과 같은 선언을 찾고 반환 타입이 없는지 봅니다.",
+          "직접 선언한 실제 생성자가 하나라도 있는지 확인합니다.",
+          "new의 인자 목록에 맞는 접근 가능한 생성자가 있는지 확인합니다."
+        ],
+        "examTip": "후기 빈출입니다. void Book()은 생성자가 아니며 실제 생성자를 하나도 안 썼다면 기본 생성자가 제공됩니다."
+      },
+      {
+        "id": "this",
+        "title": "this와 this()",
+        "summary": "현재 객체 참조와 생성자 위임 호출을 구분합니다.",
+        "code": "class Circle {\n    int radius;\n    Circle() { this(1); }\n    Circle(int radius) { this.radius = radius; }\n}",
+        "paragraphs": [
+          "this는 현재 객체를 가리키는 참조입니다. this.radius는 필드, 오른쪽 radius는 매개변수여서 같은 이름을 구별할 수 있습니다.",
+          "this(...)는 같은 클래스의 다른 생성자 호출입니다. 강의의 Java 10 문법에서는 생성자의 첫 문장이어야 하고 생성자 호출이 순환하면 안 됩니다. static 메소드에서는 현재 객체가 정해져 있지 않으므로 this를 사용할 수 없습니다."
+        ],
+        "check": {
+          "q": "new Circle()에서 위 생성자들은 어떻게 연결되나요?",
+          "a": "Circle()에서 this(1)로 Circle(int)를 호출해 반지름을 1로 초기화합니다. 객체를 두 개 만든다는 뜻은 아닙니다."
+        },
+        "source": "4장 p.24~28, 60",
+        "key": "ch4-this",
+        "easy": "this는 “지금 이 객체”를 가리킵니다. this.n=n에서 왼쪽은 객체의 저장 공간, 오른쪽은 호출 때 받은 지역 매개변수라 같은 이름이어도 구별됩니다.",
+        "steps": [
+          "this.필드는 현재 객체의 필드로 읽습니다.",
+          "this(...)는 같은 클래스의 다른 생성자로 이동하는 호출로 읽습니다.",
+          "위임 생성자 실행 뒤 원래 생성자의 남은 본문으로 돌아옵니다."
+        ],
+        "examTip": "this(...)는 객체 추가 생성이 아닙니다. Java 10에서는 생성자 첫 문장 규칙을 지켜야 합니다."
+      },
+      {
+        "id": "object-arrays",
+        "title": "객체 배열과 메소드 오버로딩",
+        "summary": "배열 생성과 원소 객체 생성, 메소드 선언 구분 기준을 봅니다.",
+        "code": "Circle[] a = new Circle[3]; // 원소는 모두 null\nfor (int i=0; i<a.length; i++)\n    a[i] = new Circle(i+1); // 각 객체 별도 생성",
+        "paragraphs": [
+          "객체 배열은 객체 참조의 배열입니다. 위 코드를 모두 실행하면 배열 객체 1개와 Circle 객체 3개가 생성됩니다. 원소 객체를 만들기 전에 a[0].radius에 접근하면 NullPointerException입니다.",
+          "오버로딩은 같은 이름의 메소드를 매개변수 목록이 다르게 선언하는 것입니다. 개수·타입·타입 순서가 구분 기준이고, 반환 타입 또는 매개변수 이름만 바꾸는 것은 불가합니다."
+        ],
+        "table": {
+          "headers": [
+            "기존 선언",
+            "추가 선언",
+            "판단"
+          ],
+          "rows": [
+            [
+              "int f(int x)",
+              "int f(double x)",
+              "가능: 타입 차이"
+            ],
+            [
+              "int f(int x)",
+              "int f(int x, int y)",
+              "가능: 개수 차이"
+            ],
+            [
+              "int f(int x)",
+              "double f(int y)",
+              "불가: 반환 타입·이름만 차이"
+            ]
+          ]
+        },
+        "check": {
+          "q": "new Circle[3]이 Circle 생성자를 3번 호출하나요?",
+          "a": "아닙니다. 참조 배열만 만들며 원소는 null입니다. 각 원소의 Circle 객체는 별도로 생성해야 합니다."
+        },
+        "source": "4장 p.29~40",
+        "key": "ch4-object-arrays",
+        "easy": "객체 배열의 각 칸에는 객체 자체보다 객체를 가리키는 참조가 들어갑니다. new Circle[3]은 빈 참조 칸 3개를 만들며 Circle 생성자는 아직 부르지 않습니다.",
+        "steps": [
+          "배열 객체 1개를 센 뒤 원소의 new 횟수를 따로 셉니다.",
+          "a[i]가 null이면 필드·메소드 접근에서 예외가 생깁니다.",
+          "오버로딩은 이름 뒤 매개변수 타입 목록을 나란히 써서 비교합니다."
+        ],
+        "examTip": "반환 타입만 다른 두 메소드는 오버로딩이 아닙니다. 인자 이름을 x에서 y로 바꿔도 구분되지 않습니다."
+      },
+      {
+        "id": "references",
+        "title": "값 전달·참조 공유·재대입",
+        "summary": "자바의 인자 전달은 모두 값의 복사입니다.",
+        "paragraphs": [
+          "기본 타입은 데이터 값을, 참조 타입은 참조 값을 복사하여 매개변수에 전달합니다. 참조 값을 복사받은 매개변수가 같은 객체를 가리키므로 내부 상태 변경이 호출자에게 보일 수 있습니다.",
+          "하지만 매개변수에 다른 객체를 대입하는 것은 매개변수만 바꿉니다. 호출자의 참조 변수 자체가 바뀌지는 않습니다. 객체 변수 대입도 객체 전체 복사가 아니라 참조 값 복사입니다."
+        ],
+        "code": "static void edit(int[] x) { x[0]=9; }\nstatic void replace(int[] x) { x=new int[]{7}; }\n// main 안\nint[] a={1};\nedit(a);    // a[0]=9\nreplace(a); // a[0]은 여전히 9",
+        "pitfall": "“객체는 참조로 전달된다”만 외우면 재대입 문제를 틀리기 쉽습니다. 정확히는 “참조 값이 복사되는 값 전달”입니다. 객체의 ==는 동일 객체 참조 비교이고 문자열 내용 비교는 equals()를 사용합니다.",
+        "check": {
+          "q": "메소드 안에서 매개변수 x=null;로 바꾸면 호출자의 a도 null인가요?",
+          "a": "아닙니다. 복사된 매개변수 참조만 바뀌므로 호출자의 a는 기존 객체를 계속 참조합니다."
+        },
+        "source": "4장 p.34~41; 3장 p.14",
+        "key": "ch4-references",
+        "easy": "호출자의 참조와 매개변수 참조는 같은 대상을 표시한 별개의 복사본입니다. 대상의 내용을 바꾸는 일과 복사본의 연결을 옮기는 일을 분리하세요.",
+        "steps": [
+          "호출 직후 호출자 a와 매개변수 x가 같은 객체를 가리키게 그립니다.",
+          "x[0]=9는 공유 객체 내부를 바꿉니다.",
+          "x=new ...는 x 연결만 새 객체로 옮기며 호출자 a를 바꾸지 않습니다."
+        ],
+        "examTip": "이유에는 “참조 값의 복사 → 객체 공유 → 매개변수 재대입은 호출자 참조를 바꾸지 않음”을 씁니다."
+      },
+      {
+        "id": "access",
+        "title": "접근 지정자와 패키지",
+        "summary": "클래스 자체의 접근 가능성과 멤버 접근을 함께 봅니다.",
+        "table": {
+          "headers": [
+            "지정자",
+            "같은 클래스",
+            "같은 패키지의 다른 일반 클래스",
+            "다른 패키지"
+          ],
+          "rows": [
+            [
+              "private",
+              "가능",
+              "불가",
+              "직접 접근 불가"
+            ],
+            [
+              "생략(package-private)",
+              "가능",
+              "가능",
+              "불가"
+            ],
+            [
+              "protected",
+              "가능",
+              "가능",
+              "하위 클래스에서 조건에 맞게 가능"
+            ],
+            [
+              "public",
+              "가능",
+              "가능",
+              "클래스 자체도 접근 가능하면 가능"
+            ]
+          ]
+        },
+        "paragraphs": [
+          "최상위 클래스는 public 또는 접근 지정자 생략을 사용합니다. private·protected는 최상위 클래스의 접근 지정자로 사용할 수 없습니다.",
+          "서로 다른 패키지의 하위 클래스에서 protected 멤버를 접근할 수 있지만, 임의의 상위 타입 객체를 통해 모두 접근 가능한 것은 아닙니다. 기본 공개 범위를 익히고 실제 참조 타입도 확인하세요."
+        ],
+        "check": {
+          "q": "같은 패키지이면 다른 일반 클래스의 private 필드를 직접 읽을 수 있나요?",
+          "a": "아닙니다. 같은 패키지라도 private 필드에는 직접 접근할 수 없습니다."
+        },
+        "source": "4장 p.46~52",
+        "key": "ch4-access",
+        "easy": "접근 범위는 “누가 어디서 읽는가”를 정하는 문입니다. private을 같은 패키지에서도 읽을 수 있다고 착각하거나 protected를 모든 외부 코드에 공개한다고 생각하면 안 됩니다.",
+        "steps": [
+          "멤버를 선언한 클래스와 사용하는 클래스가 같은지 봅니다.",
+          "다르면 같은 패키지인지 봅니다.",
+          "다른 패키지라면 상속 관계와 지정자 조건을 함께 봅니다."
+        ],
+        "examTip": "후기 빈출입니다. 같은 패키지 일반 클래스는 private 제외, 다른 패키지 일반 클래스는 public만으로 먼저 정리하세요."
+      },
+      {
+        "id": "static-final",
+        "title": "static과 final",
+        "summary": "소속·공유와 재대입·상속 제한은 다른 축입니다.",
+        "table": {
+          "headers": [
+            "구분",
+            "인스턴스 멤버",
+            "static 멤버"
+          ],
+          "rows": [
+            [
+              "소속",
+              "객체",
+              "클래스"
+            ],
+            [
+              "필드 저장",
+              "객체별 독립",
+              "같은 클래스 객체들이 공유"
+            ],
+            [
+              "대표 접근",
+              "객체참조.멤버",
+              "클래스명.멤버"
+            ],
+            [
+              "현재 객체 this",
+              "인스턴스 문맥에서 가능",
+              "static 메소드에서는 불가"
+            ]
+          ]
+        },
+        "paragraphs": [
+          "static 메소드는 인스턴스 멤버를 객체 없이 직접 접근할 수 없습니다. 그러나 객체 참조를 통해 접근하는 것은 가능합니다. 인스턴스 메소드에서 static 멤버를 사용하는 것도 가능합니다.",
+          "final 변수는 한 번 대입한 후 재대입 금지, final 메소드는 오버라이딩 금지, final 클래스는 상속 금지입니다. static final은 클래스가 공유하는 재대입 불가 변수입니다. 초기값 없는 final 인스턴스 필드는 생성자에서 확정적으로 초기화할 수도 있습니다."
+        ],
+        "code": "final int[] a={1,2};\na[0]=9;          // 가능: 내부 원소 변경\n// a=new int[2]; // 불가: final 참조 재대입",
+        "pitfall": "final 참조가 가리키는 객체의 내부까지 모두 불변이 되는 것은 아닙니다. 또한 메소드 코드가 인스턴스마다 통째로 복사된다고 이해하지 마세요.",
+        "check": {
+          "q": "static 필드는 자동으로 상수인가요?",
+          "a": "아닙니다. static은 클래스 소속·공유를 뜻합니다. 재대입 제한은 final의 역할입니다."
+        },
+        "source": "4장 p.53~62",
+        "key": "ch4-static-final",
+        "easy": "static은 모든 객체가 함께 보는 공용 칸, 인스턴스 필드는 각 객체가 가진 개인 칸입니다. final은 칸의 소속이 아니라 재대입을 막는 별도의 규칙입니다.",
+        "steps": [
+          "생성 횟수만큼 공유 static 필드 변화를 누적합니다.",
+          "인스턴스 필드는 해당 객체가 받은 변화만 계산합니다.",
+          "final 참조에서는 참조 재대입과 객체 내부 변경을 구분합니다."
+        ],
+        "examTip": "4장 final 클래스·메소드의 제한은 강의에 있으나, 5장 30쪽 이후의 메소드 실행 선택 문제는 이번 범위에서 다루지 않습니다."
+      },
+      {
+        "id": "gc",
+        "title": "가비지와 객체의 수명",
+        "summary": "참조 해제와 즉시 삭제는 다릅니다.",
+        "code": "Object a=new Object();\nObject b=a;\na=null; // b로 여전히 접근 가능\nb=null; // 다른 참조가 없다면 기존 객체는 수거 대상",
+        "paragraphs": [
+          "가비지는 프로그램이 더 이상 도달할 수 없는 객체입니다. 단순한 강의 예제에서는 아무 참조도 남지 않은 객체로 판단하면 됩니다. JVM의 가비지 컬렉터가 메모리를 자동으로 회수합니다.",
+          "null 대입은 참조 연결을 끊는 것이고 즉시 삭제 명령이 아닙니다. System.gc()도 수거 요청일 뿐입니다. Java에는 C++의 delete 같은 직접 객체 삭제 연산자가 없습니다."
+        ],
+        "check": {
+          "q": "a=null 직후 위 객체가 가비지인가요?",
+          "a": "아닙니다. b가 여전히 같은 객체를 참조하므로 접근할 수 있습니다."
+        },
+        "source": "4장 p.41~45",
+        "key": "ch4-gc",
+        "easy": "객체로 이어지는 연결을 모두 잃으면 더 이상 사용할 수 없어 수거 대상이 됩니다. 한 변수의 연결을 끊어도 다른 변수의 연결이 남으면 살아 있습니다.",
+        "steps": [
+          "new마다 객체를 그리고 각 변수의 연결을 표시합니다.",
+          "null 대입이나 재대입은 그 변수의 연결만 지웁니다.",
+          "끝에 어떤 경로로도 도달할 수 없는 객체를 수거 대상으로 셉니다."
+        ],
+        "examTip": "“수거 대상이 됨”과 “즉시 삭제됨”은 다른 말입니다. System.gc()도 수거 완료 시점을 보장하지 않습니다."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "title": "상속·캐스팅 (p.29까지)",
+    "intro": "5장은 29페이지의 instanceof 예제까지 공부합니다. 상속 관계, 생성자 연결, 참조 타입과 실제 객체 타입을 차례로 구분합니다.",
+    "minutes": 31,
+    "keywords": [
+      "extends",
+      "super()",
+      "업·다운캐스팅",
+      "instanceof"
+    ],
+    "goals": [
+      "상속의 접근 제한과 생성자 실행 순서를 설명한다.",
+      "업캐스팅 후 접근 가능한 멤버와 다운캐스팅 성공 조건을 판단한다.",
+      "instanceof로 다단계·형제 클래스의 타입 관계를 판별한다."
+    ],
+    "sections": [
+      {
+        "id": "inheritance",
+        "title": "extends와 상속의 목적",
+        "summary": "중복을 줄이고 기존 특성을 재사용·확장합니다.",
+        "code": "class Point {\n    private int x;\n    public void setX(int n) { x=n; }\n}\nclass ColorPoint extends Point {\n    String color;\n}",
+        "paragraphs": [
+          "상위 클래스는 슈퍼 클래스, 하위 클래스는 서브 클래스라고 합니다. extends로 기존 클래스를 확장하여 중복을 줄이고 새로운 특성을 추가합니다.",
+          "자바 클래스는 하나의 클래스를 직접 상속합니다. A → B → C처럼 여러 단계로 이어지는 상속은 가능합니다. Object 자신을 제외한 클래스는 직접 또는 간접적으로 java.lang.Object를 상속합니다."
+        ],
+        "pitfall": "하위 객체 안에 상위 부분의 상태가 존재한다고 해서 상위의 private 필드를 하위 클래스 코드에서 직접 읽을 수 있는 것은 아닙니다. public 메소드 등을 통해 접근합니다.",
+        "check": {
+          "q": "class C extends A, B는 가능한가요?",
+          "a": "불가능합니다. 한 클래스는 하나의 클래스만 직접 extends할 수 있습니다. C extends B, B extends A처럼 단계적으로 이어지는 것은 가능합니다."
+        },
+        "source": "5장 p.3~12",
+        "key": "ch5-inheritance",
+        "easy": "Student가 Person의 일종인 것처럼 “자식은 부모의 한 종류” 관계입니다. Person p=new Student()가 자연스럽지만 모든 Person이 Student는 아니라는 점이 캐스팅과 연결됩니다.",
+        "steps": [
+          "extends 오른쪽이 직접 부모인지 확인합니다.",
+          "부모를 따라 올라가며 간접 상위 타입도 찾습니다.",
+          "형제 가지는 서로의 상위·하위 타입이 아니라는 점을 확인합니다."
+        ],
+        "examTip": "클래스 다중 상속 불가와 다단계 상속 가능을 구분하세요."
+      },
+      {
+        "id": "inheritance-access",
+        "title": "상속과 private·protected 접근",
+        "summary": "객체 안에 상태가 존재하는 것과 코드에서 직접 읽는 것은 다릅니다.",
+        "paragraphs": [
+          "부모의 private 필드는 자식 객체의 부모 부분에도 존재하지만 자식 클래스 코드에서는 직접 접근할 수 없습니다. 부모가 제공한 접근 가능한 메소드로 사용합니다.",
+          "같은 패키지에서는 protected와 접근 지정자 생략 멤버도 접근할 수 있습니다. 다른 패키지에서는 생략 멤버에 접근할 수 없고 protected는 자식 클래스라는 조건과 접근 방식에 제한이 있습니다."
+        ],
+        "code": "class Parent {\n    private int secret=7;\n    protected int shared=3;\n    public int read(){ return secret; }\n}\nclass Child extends Parent {\n    int test(){ return read()+shared; } // 10\n    // int wrong(){ return secret; }   // 직접 접근 불가\n}",
+        "pitfall": "상속은 private을 public으로 바꾸지 않습니다. 부모 생성자는 상속되는 일반 멤버도 아닙니다.",
+        "check": {
+          "q": "자식 객체에서 부모의 public 메소드로 private 상태를 읽을 수 있나요?",
+          "a": "가능합니다. private을 선언한 부모 클래스의 메소드가 자기 필드에 접근하기 때문입니다. 자식 코드의 직접 필드 접근과 다릅니다."
+        },
+        "source": "5장 p.8~12",
+        "easy": "자식 집 안에 부모의 잠긴 서랍이 있어도 직접 열 권한은 없습니다. 부모가 제공한 공개 메소드를 통하면 부모 코드가 자기 필드를 읽을 수 있습니다.",
+        "steps": [
+          "private 필드를 자식이 직접 읽는지 확인합니다.",
+          "부모의 public 메소드 안에서 읽는 것은 가능함을 구분합니다.",
+          "protected와 생략의 차이는 패키지 경계를 기준으로 비교합니다."
+        ],
+        "examTip": "상속 오류 찾기는 접근 제한과 생성자 호출을 먼저 확인하세요.",
+        "key": "ch5-inheritance-access"
+      },
+      {
+        "id": "super-constructors",
+        "title": "상속 시 생성자와 super()",
+        "summary": "부모 생성자 본문이 자식 생성자 본문보다 먼저 실행됩니다.",
+        "code": "class A { A(int n) { System.out.print(\"A\"); } }\nclass B extends A {\n    B() { super(1); System.out.print(\"B\"); }\n}\n// new B(); → AB",
+        "paragraphs": [
+          "하위 객체 생성 시 상위 클래스의 생성자도 실행됩니다. 생성자 본문의 실행은 상위에서 하위 순서입니다. 생성자를 메소드처럼 상속받는다는 뜻은 아닙니다.",
+          "this(...)나 super(...)를 명시하지 않은 생성자에는 묵시적으로 super()가 들어갑니다. 상위에 접근 가능한 인자 없는 생성자가 없으면 컴파일 오류입니다. super(인자)로 적절한 상위 생성자를 선택할 수 있습니다.",
+          "강의 Java 10 문법에서 this(...)와 super(...)는 생성자의 첫 문장이므로 같은 생성자에서 둘을 나란히 호출할 수 없습니다. this(...)로 위임한 생성자 경로에서도 결국 상위 생성자를 호출합니다."
+        ],
+        "check": {
+          "q": "A(int)만 있는 A를 상속하면서 B()를 비워 두면?",
+          "a": "묵시적 super()가 호출할 A()가 없어 컴파일 오류입니다. B()에서 super(1)처럼 지정할 수 있습니다."
+        },
+        "source": "5장 p.13~21",
+        "key": "ch5-super-constructors",
+        "easy": "자식 객체를 준비하려면 부모 부분부터 초기화해야 합니다. new Child() 한 번 안에서 부모 생성자와 자식 생성자가 순서대로 실행됩니다.",
+        "steps": [
+          "자식 생성자 첫 문장의 this(...) 또는 super(...)를 찾습니다.",
+          "없으면 super()가 묵시적으로 호출된다고 읽습니다.",
+          "부모에 일치하는 생성자가 있는지 확인한 뒤 부모 본문부터 출력을 적습니다."
+        ],
+        "examTip": "부모에 Parent(int)만 있으면 Parent()는 자동 생성되지 않습니다. 이것이 빈 자식 생성자가 오류가 되는 대표 상황입니다."
+      },
+      {
+        "id": "upcasting",
+        "title": "업캐스팅과 접근 가능한 멤버",
+        "summary": "참조 타입이 바뀌어도 실제 객체는 바뀌지 않습니다.",
+        "code": "class Person { String name; }\nclass Student extends Person { String grade; }\n// 메소드 안\nStudent s=new Student();\nPerson p=s;       // 자동 업캐스팅\np.name=\"Kim\";     // 가능\n// p.grade=\"A\";   // 컴파일 오류",
+        "paragraphs": [
+          "업캐스팅은 하위 객체의 참조를 상위 타입 변수에 대입하는 것입니다. 별도 객체를 만들거나 실제 객체의 하위 부분을 삭제하지 않습니다. p와 s는 같은 Student 객체를 참조합니다.",
+          "컴파일 시 접근할 수 있는 멤버는 참조 변수의 선언 타입을 기준으로 판단합니다. Person에 선언되지 않은 grade는 p.grade로 직접 접근할 수 없습니다. 실제 객체가 Student라는 사실만으로 p가 모든 Student 멤버를 볼 수 있는 것은 아닙니다."
+        ],
+        "check": {
+          "q": "실제 객체가 Student인데 p.grade가 왜 오류인가요?",
+          "a": "p의 선언 타입 Person에는 grade가 없기 때문입니다. 컴파일 시 멤버 접근은 선언 타입을 기준으로 검사합니다."
+        },
+        "source": "5장 p.22~24",
+        "key": "ch5-upcasting",
+        "easy": "한 사람을 학생이라는 구체적 분류 대신 넓은 분류인 사람으로 소개한다고 생각하세요. 같은 사람은 그대로 있지만 Person 참조로는 사람의 공통 멤버만 바로 사용할 수 있습니다.",
+        "steps": [
+          "변수 왼쪽 선언 타입과 new 뒤 실제 객체 타입을 따로 적습니다.",
+          "필드가 선언 타입에 존재하고 접근 가능한지 확인합니다.",
+          "자식 전용 멤버라면 적절한 다운캐스팅이 필요한지 봅니다."
+        ],
+        "examTip": "업캐스팅은 객체 복제·필드 삭제·새 생성이 아닙니다. 컴파일 오류 이유에는 선언 타입을 반드시 적으세요."
+      },
+      {
+        "id": "downcasting",
+        "title": "다운캐스팅과 실행 중 타입 검사",
+        "summary": "명시적 캐스팅은 실제 객체의 타입을 바꾸는 마법이 아닙니다.",
+        "code": "Person p=new Student();\nif (p instanceof Student) {\n    Student s=(Student)p; // 실제 객체가 맞으면 성공\n}\nPerson other=new Person();\n// Student bad=(Student)other; // ClassCastException",
+        "paragraphs": [
+          "다운캐스팅은 상위 타입 참조를 하위 타입으로 명시적 변환하는 것입니다. 컴파일 가능 여부와 실행 시 실제 객체 적합성은 별도입니다. 실제 객체가 해당 하위 타입이 아니면 ClassCastException이 발생할 수 있습니다."
+        ],
+        "check": {
+          "q": "Person p=new Person();을 (Student)p로 바꾸면 실제 객체가 Student가 되나요?",
+          "a": "아닙니다. 캐스팅은 실제 객체 타입을 바꾸지 않습니다. Person 객체는 Student가 아니므로 실행 중 ClassCastException이 발생합니다."
+        },
+        "source": "5장 p.25~26",
+        "key": "ch5-downcasting",
+        "easy": "상위 분류로 보던 객체를 다시 자식 타입으로 다루려면 실제 객체가 그 자식이어야 합니다. 괄호 캐스팅 표기만으로 부모 객체에 없던 자식 부분을 만들어 낼 수 없습니다.",
+        "steps": [
+          "상속 관계상 캐스트 문법이 가능한지 봅니다.",
+          "new 뒤 실제 객체 타입이 목표 자식 타입에 해당하는지 봅니다.",
+          "가능하면 같은 객체를 사용하고 아니면 실행 중 ClassCastException입니다."
+        ],
+        "examTip": "컴파일 가능과 정상 실행 가능은 다른 질문입니다. 정답에 어느 단계에서 실패하는지 함께 쓰세요."
+      },
+      {
+        "id": "instanceof",
+        "title": "instanceof와 다단계 상속 판별",
+        "summary": "실제 객체에서 위로 이어지는 모든 상위 타입은 true입니다.",
+        "paragraphs": [
+          "instanceof는 객체를 생성하거나 형 변환하는 연산이 아니라, 해당 타입의 객체로 볼 수 있는지 검사해 true 또는 false를 반환합니다.",
+          "Person 아래 Student와 Researcher가 있고 Researcher 아래 Professor가 있다면 Professor 객체는 Professor·Researcher·Person이지만 Student는 아닙니다. null의 instanceof는 false이며 기본 타입 값에는 사용할 수 없습니다."
+        ],
+        "code": "class Person {}\nclass Student extends Person {}\nclass Researcher extends Person {}\nclass Professor extends Researcher {}\n// 메소드 안\nPerson p=new Professor();\nSystem.out.println(p instanceof Person);     // true\nSystem.out.println(p instanceof Researcher); // true\nSystem.out.println(p instanceof Professor);  // true\nSystem.out.println(p instanceof Student);    // false",
+        "check": {
+          "q": "Person p=new Professor();에서 p instanceof Student가 false인 이유는?",
+          "a": "Professor에서 부모 방향으로 올라가면 Researcher와 Person만 나옵니다. Student는 별도 가지이므로 이 객체의 타입이 아닙니다."
+        },
+        "source": "5장 p.27~29",
+        "easy": "객체에서 부모 방향으로 올라가는 경로에 있는 타입은 모두 true입니다. 옆 가지의 형제 클래스는 그 경로에 없으므로 false입니다.",
+        "steps": [
+          "new Professor()에서 출발합니다.",
+          "Professor → Researcher → Person을 표시합니다.",
+          "이 경로에 없는 Student는 false로 판단합니다."
+        ],
+        "examTip": "서로 독립된 if문이면 true인 조건마다 모두 출력합니다. if-else if 한 갈래와 혼동하지 마세요.",
+        "key": "ch5-instanceof"
+      }
+    ]
+  }
+];root.JAVA_LESSONS=chapters;if(typeof module!=="undefined")module.exports=chapters;})(typeof window!=="undefined"?window:globalThis);

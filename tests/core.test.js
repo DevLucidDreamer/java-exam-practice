@@ -12,7 +12,7 @@ test('answer key yields 100 for all four exams; blank answers yield zero',()=>{
 });
 test('objective wrong answers and written partial/manual scores are handled',()=>{
  const mc=exams[0].questions[0],w=exams[0].questions[18];assert.equal(C.grade(mc,{choice:(mc.correct+1)%4}).score,0);
- assert.equal(C.grade(w,{answer:' 9 ',reason:''}).score,2);assert.equal(C.grade(w,{answer:'9',reason:'참조'}).score,3.5);
+ assert.equal(C.grade(w,{answer:' 11 ',reason:''}).score,2);assert.equal(C.grade(w,{answer:'11',reason:'참조'}).score,3.5);
  assert.deepEqual(C.grade(w,{...gold(w),manualScore:0}).score,0);assert.equal(C.grade(w,{...gold(w),manualScore:4.5}).score,4.5);
  assert.equal(C.grade(w,{manualScore:5}).confirmed,true);
 });
